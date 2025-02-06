@@ -1,0 +1,96 @@
+body {
+    background-image: url('dew.webp');
+    background-size: 100%;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 15px;
+}
+
+#photo {
+    height: 11rem;
+}
+
+.column {
+    float: left;
+}
+
+.column.left {
+    width: 20%;
+}
+
+.column.right {
+    background-color: white;
+    opacity: 0.9;
+    padding: 1.5rem;
+    width: 75%;
+}
+
+.header-column {
+}
+
+.header-column.left {
+    width: 30%;
+}
+
+.header-column.right {
+    display: flex;
+    width: 50%;
+    float: right;
+}
+
+.footer {
+    bottom: 0;
+    clear: both;
+    color: white;
+    position: fixed;
+    text-align: center;
+}
+
+.footer a {
+    color: white;
+}
+
+#menu {
+    background: black;
+    display: flex;
+    padding: 1rem;
+    position: fixed;
+    opacity: 0.8;
+    right: 1rem;
+    top: 3.25rem;;
+}
+
+#header {
+    margin: 3rem 1rem;
+}
+
+#name a {
+    color: white;
+    font-size: 3rem;
+    text-decoration: none;
+}
+ 
+
+h2 {
+    -webkit-margin-before: 0px;
+}
+
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+    display: inline;
+}
+
+ol li {
+    display: list-item;
+}
+
+li a {
+    color: blue;
+    font-size: large;
+    padding-right: 1.5rem;
+    text-decoration: none;
+}
