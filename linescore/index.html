@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0d2b5e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Linescore">
+<title>Linescore</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230d2b5e'/%3E%3Cpath d='M16 5 27 16 16 27 5 16z' fill='none' stroke='%23ffffff' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+:root{
+  /* Layout: one fixed "page" (at most 1040 x 720) that always fits the window. Score rail on the
+     left, one captioned photo story in the middle, headline list on the right. On an upright phone
+     the rail stays on the left and the story stacks over the list. Nothing scrolls. */
+  --board:#0d2b5e; --board-hi:#1f4f95; --board-deep:#071a3d; --accent:#c8102e;
+  --page:#c3c9d3; --paper:#ffffff; --panel:#f1f3f7; --edge:#8a93a3;
+  --ink:#1a1f28; --head:#0d2147; --muted:#56606e; --faded:#959dab; --win:#000000;
+  --rule:#d5dae2; --rule-strong:#aab3c2;
+  --bar-hi:#fbfcfd; --bar-lo:#dde3ec; --bar-ink:#0d2b5e; --bar-rule:#c8102e;
+  --link:#1b4f9c; --live:#c8102e; --bullet:#c8102e; --hover:rgba(13,43,94,.08);
+  --f-body:Verdana,"DejaVu Sans",Geneva,Tahoma,sans-serif;
+  --f-head:Arial,"Helvetica Neue",Helvetica,"Liberation Sans",sans-serif;
+  --f-mark:"Arial Black","Arial Bold",Arial,"Helvetica Neue",sans-serif;
+  --sidew:clamp(190px,25.5%,264px);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --board:#0b2350; --board-hi:#173f7a; --board-deep:#061633; --accent:#e5485a;
+    --page:#05080f; --paper:#0e1420; --panel:#121a28; --edge:#26324a;
+    --ink:#dfe5ee; --head:#f2f5fa; --muted:#93a0b6; --faded:#5e6b81; --win:#ffffff;
+    --rule:#202b3d; --rule-strong:#33415a;
+    --bar-hi:#1b2538; --bar-lo:#141d2d; --bar-ink:#eef2f8; --bar-rule:#e5485a;
+    --link:#9dc3ff; --live:#ff7d6e; --bullet:#e5485a; --hover:rgba(157,195,255,.10);
+    color-scheme:dark;
+  }
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{
+  margin:0;height:100vh;height:100dvh;overflow:hidden;
+  padding:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));
+  background:var(--page);color:var(--ink);font:11px/1.4 var(--f-body);
+}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+button{font:inherit;color:inherit;border-radius:0}
+[hidden]{display:none!important}
+
+#page{
+  height:100%;max-width:1040px;max-height:720px;margin:0 auto;
+  display:flex;flex-direction:column;overflow:hidden;
+  background:var(--paper);border:1px solid var(--edge);
+}
+
+/* ---------- header ---------- */
+#util{
+  flex:none;display:flex;align-items:center;gap:8px;height:22px;padding:0 10px;
+  background:var(--panel);border-bottom:1px solid var(--rule);font-size:10px;color:var(--muted);white-space:nowrap;
+}
+#util .sp{flex:1}
+#util select{font:10px var(--f-body);height:17px;padding:0 2px;max-width:170px;border:1px solid var(--rule-strong);background:var(--paper);color:var(--ink);border-radius:0}
+#mast{
+  flex:none;display:flex;align-items:center;gap:10px;padding:7px 12px;color:#fff;
+  background:linear-gradient(180deg,var(--board-hi),var(--board) 46%,var(--board-deep));
+  border-bottom:2px solid var(--accent);
+}
+.mark{width:28px;height:28px;flex:none}
+.word{font:italic 900 26px/1 var(--f-mark);letter-spacing:-.045em;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.tag{margin-top:3px;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#b9c8e2;white-space:nowrap}
+#status{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:9px;color:#d3dcec;white-space:nowrap}
+#status.err #upd{color:#ffd3cc}
+#reload{width:22px;height:20px;padding:0;border:1px solid rgba(255,255,255,.38);background:rgba(0,0,0,.2);color:#fff;font-size:13px;line-height:1;cursor:pointer}
+#reload:hover{background:rgba(255,255,255,.16)}
+#nav{flex:none;display:flex;align-items:center;height:24px;padding:0 4px;overflow:hidden;white-space:nowrap;background:var(--board-deep)}
+#nav .lbl{padding:0 8px 0 6px;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#a9bbdb}
+#nav a{padding:0 9px;font:bold 11px/24px var(--f-head);color:#fff;border-left:1px solid rgba(255,255,255,.16)}
+#nav a:hover{background:rgba(255,255,255,.13)}
+
+/* ---------- columns ---------- */
+#main{flex:1 1 0;min-height:0;display:grid;grid-template-columns:var(--railw,172px) minmax(0,1fr) var(--sidew)}
+.bar{
+  flex:none;margin:0;display:flex;align-items:center;justify-content:space-between;gap:8px;height:20px;padding:0 6px;
+  font:bold 10px/1 var(--f-head);letter-spacing:.07em;text-transform:uppercase;color:var(--bar-ink);white-space:nowrap;
+  background:linear-gradient(180deg,var(--bar-hi),var(--bar-lo));
+  border:1px solid var(--rule-strong);border-bottom:2px solid var(--bar-rule);
+}
+.bar small{min-width:0;overflow:hidden;text-overflow:ellipsis;font:9px/1.2 var(--f-body);letter-spacing:0;text-transform:none;color:var(--muted)}
+
+/* ---------- scoreboard rail ---------- */
+#rail{display:flex;flex-direction:column;min-width:0;min-height:0;padding:6px 6px 4px;background:var(--panel);border-right:1px solid var(--rule)}
+.daynav{flex:none;display:flex;align-items:center;gap:4px;padding:4px 0 4px}
+.daynav button{flex:none;width:22px;height:18px;padding:0;border:1px solid var(--rule-strong);background:var(--paper);color:var(--link);font:bold 11px/1 var(--f-body);cursor:pointer}
+.daynav button:hover{background:var(--hover)}
+#sb-date{flex:1;min-width:0;text-align:center;font-weight:bold;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note{flex:none;padding:0 1px 4px;font-size:9px;line-height:1.3;color:var(--muted)}
+#sb-msg{flex:1 1 0;min-height:0;margin:0;padding:8px 2px;border-top:1px solid var(--rule);font-size:10px;line-height:1.45;color:var(--muted);overflow:hidden}
+.games{
+  flex:1 1 0;min-height:0;display:grid;grid-auto-flow:column;
+  grid-template-rows:repeat(var(--rows,1),minmax(0,var(--rowmax,40px)));
+  grid-auto-columns:minmax(0,1fr);column-gap:10px;align-content:start;overflow:hidden;
+  border-top:1px solid var(--rule);
+}
+.games.scroll{grid-template-rows:repeat(var(--rows,1),24px);overflow-y:auto}
+.gm{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;min-height:0;overflow:hidden;
+  border-bottom:1px solid var(--rule);font-size:var(--gfs,11px);line-height:1.2;
+}
+.gm.fav{box-shadow:inset 2px 0 0 var(--accent)}
+.tm{
+  display:grid;grid-template-columns:3.6em minmax(0,1fr);grid-template-rows:auto auto;align-content:center;
+  column-gap:.4em;min-width:0;padding:0 3px 0 5px;color:inherit;
+}
+.tm:hover{background:var(--hover);text-decoration:none}
+.st{grid-row:1 / span 2;align-self:center;font-size:.86em;font-weight:bold;white-space:nowrap;overflow:hidden;color:var(--muted)}
+.ln{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:.4em;color:var(--ink);font-variant-numeric:tabular-nums}
+.ln .rn{min-width:1.3em;text-align:right;font-family:var(--f-head)}
+.ln.w{font-weight:bold;color:var(--win)}
+.ln.l{color:var(--faded)}
+.gm.live .st{color:var(--live)}
+.gm.pre .st{font-weight:normal}
+.gm.off .ln,.gm.off .st{color:var(--faded)}
+.lk{display:flex;flex-direction:column;justify-content:center;align-items:flex-end;padding:0 3px 0 2px;font-size:.82em;line-height:1.35;white-space:nowrap}
+#rail.tight .lk{display:none}
+#rail.tight .gm{grid-template-columns:minmax(0,1fr)}
+#rail.tight .tm{position:relative;padding-right:15px}
+#rail.tight .tm::after{content:"\203A";position:absolute;right:3px;top:50%;transform:translateY(-54%);font:bold 15px/1 var(--f-head);color:var(--link);opacity:.75}
+.railfoot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:6px;padding-top:4px;font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.railfoot button{padding:1px 6px;border:1px solid var(--rule-strong);background:var(--paper);color:var(--link);font-size:9px;cursor:pointer}
+
+/* ---------- top story ---------- */
+#lead{display:flex;flex-direction:column;min-width:0;min-height:0;padding:6px 10px;overflow:hidden;container-type:inline-size}
+#lead > *{flex-shrink:0}
+.photo{
+  position:relative;display:block;flex:0 1 auto!important;height:38vw;max-height:400px;min-height:84px;margin-top:6px;overflow:hidden;
+  border:1px solid var(--rule-strong);
+  background:var(--board) repeating-linear-gradient(90deg,rgba(255,255,255,.055) 0 30px,rgba(255,255,255,0) 30px 60px);
+}
+@supports (height:1cqi){ .photo{height:66cqi;max-height:66cqi} }
+.photo::after{
+  content:"";position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;
+  border:3px solid var(--accent);transform:rotate(45deg);opacity:.55;
+}
+.photo.has::after{display:none}
+.photo img{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:cover;object-position:50% 28%}
+#lead h1{
+  margin:7px 0 0;font:bold 20px/1.14 var(--f-head);letter-spacing:-.01em;text-wrap:balance;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;
+}
+#lead h1 a{color:var(--head)}
+.cap{
+  margin:5px 0 0;font-size:11px;line-height:1.45;color:var(--ink);
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;
+}
+.by{display:flex;align-items:baseline;gap:7px;margin:5px 0 0;font-size:9px;color:var(--muted);white-space:nowrap}
+.by span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.by a{flex:none;font-weight:bold}
+#lead.t1 .cap{-webkit-line-clamp:2}
+#lead.t2 .cap{display:none}
+#lead.t3 h1{-webkit-line-clamp:2}
+#lead.t3 .by{display:none}
+
+/* ---------- headline lists ---------- */
+#side{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;padding:6px 8px;overflow:hidden;border-left:1px solid var(--rule)}
+.grp{flex:none;min-width:0}
+.hl{list-style:none;margin:0;padding:0}
+.hl li{position:relative;padding:4px 0 4px 11px;border-bottom:1px dotted var(--rule-strong);line-height:1.32}
+.hl li::before{content:"";position:absolute;left:1px;top:8px;border-left:5px solid var(--bullet);border-top:3.5px solid transparent;border-bottom:3.5px solid transparent}
+.hl a{font:bold 12px/1.3 var(--f-head)}
+.hl .t{margin-left:3px;font-size:9px;color:var(--muted);white-space:nowrap}
+.hl li.msg{padding-left:1px;color:var(--muted);border-bottom:0}
+.hl li.msg::before{display:none}
+.hl li.msg a{font:inherit;font-weight:bold}
+
+/* ---------- footer ---------- */
+#foot{flex:none;display:flex;justify-content:space-between;gap:14px;padding:3px 10px 4px;background:var(--panel);border-top:1px solid var(--rule);font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden}
+#foot span{overflow:hidden;text-overflow:ellipsis}
+#foot .short{display:none}
+
+/* ---------- upright phone: rail stays left, story stacks over the list ---------- */
+@media (max-width:699px) and (orientation:portrait), (max-width:559px){
+  body{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+  #page{max-width:none;max-height:none;border:0}
+  #util,.tag,#nav .lbl,#nav .x{display:none}
+  #mast{padding:6px 8px;gap:8px}
+  .mark{width:24px;height:24px}
+  .word{font-size:22px}
+  #reload{width:30px;height:26px;font-size:15px}
+  #nav{height:28px;padding:0}
+  #nav a{flex:1;padding:0 2px;text-align:center;line-height:28px}
+  #nav a:first-of-type{border-left:0}
+  #main{grid-template-columns:clamp(132px,40vw,172px) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  #rail{grid-row:1 / span 2;padding:5px 4px 3px}
+  .daynav button{width:32px;height:26px;font-size:14px}
+  #sb-date{font-size:11px}
+  #lead{grid-column:2;grid-row:1;padding:5px 7px 6px;max-height:var(--leadmax,none)}
+  #lead h1{margin-top:6px;font-size:16px;line-height:1.16}
+  .cap{font-size:11.5px;line-height:1.4;-webkit-line-clamp:3}
+  .by{font-size:10px}
+  #side{grid-column:2;grid-row:2;padding:6px 7px;border-left:0;border-top:1px solid var(--rule)}
+  .hl a{font-size:12.5px}
+  #foot{padding:2px 8px 3px}
+  #foot .long,#foot-auto{display:none}
+  #foot .short{display:inline}
+}
+/* ---------- very short windows (phone on its side) ---------- */
+@media (max-height:480px){
+  body{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+  #page{max-width:none;border:0}
+  #util,#nav,#foot,.tag{display:none}
+  #mast{padding:3px 10px}
+  .mark{width:20px;height:20px}
+  .word{font-size:18px}
+  #rail,#lead,#side{padding-top:4px;padding-bottom:3px}
+  #lead h1{font-size:16px;margin-top:5px}
+  :root{--sidew:clamp(170px,26%,230px)}
+}
+@media (prefers-reduced-motion:no-preference){
+  #reload.spin{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+}
+</style>
+</head>
+<body>
+<div id="page">
+  <header id="top">
+    <div id="util">
+      <span id="today"></span>
+      <span class="sp"></span>
+      <label for="teams">Team pages on MLB.com:</label>
+      <select id="teams"><option value="">Choose a team&hellip;</option></select>
+    </div>
+    <div id="mast">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 3.5 28.5 16 16 28.5 3.5 16z" fill="none" stroke="#e8394a" stroke-width="2.6"/>
+        <rect x="13.4" y="1" width="5.2" height="5.2" fill="#fff" transform="rotate(45 16 3.6)"/>
+        <rect x="25.8" y="13.4" width="5.2" height="5.2" fill="#fff" transform="rotate(45 28.4 16)"/>
+        <rect x="1" y="13.4" width="5.2" height="5.2" fill="#fff" transform="rotate(45 3.6 16)"/>
+        <path d="M16 31.5 12.4 28v-3h7.2v3z" fill="#fff"/>
+      </svg>
+      <div>
+        <div class="word">Linescore</div>
+        <div class="tag">Every score and the top story on one screen</div>
+      </div>
+      <div id="status">
+        <span id="upd">Loading&hellip;</span>
+        <button id="reload" type="button" title="Refresh now" aria-label="Refresh now">&#8635;</button>
+      </div>
+    </div>
+    <nav id="nav" aria-label="Sections on MLB.com">
+      <span class="lbl">On MLB.com</span>
+      <a href="https://www.mlb.com/scores" target="_blank" rel="noopener">Scores</a>
+      <a href="https://www.mlb.com/standings" target="_blank" rel="noopener">Standings</a>
+      <a href="https://www.mlb.com/schedule" target="_blank" rel="noopener">Schedule</a>
+      <a href="https://www.mlb.com/stats" target="_blank" rel="noopener">Stats</a>
+      <a href="https://www.mlb.com/news" target="_blank" rel="noopener">News</a>
+      <a class="x" href="https://www.mlb.com/probable-pitchers" target="_blank" rel="noopener">Probables</a>
+      <a class="x" href="https://www.mlb.com/transactions" target="_blank" rel="noopener">Transactions</a>
+      <a class="x" href="https://www.mlb.com/video" target="_blank" rel="noopener">Video</a>
+      <a class="x" id="nav-fav" href="https://www.mlb.com/" target="_blank" rel="noopener" hidden></a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section id="rail" aria-label="Scoreboard">
+      <h2 class="bar"><span>Scoreboard</span><small id="sb-rel"></small></h2>
+      <div class="daynav">
+        <button id="prev" type="button" title="Previous game day" aria-label="Previous game day">&laquo;</button>
+        <div id="sb-date">&nbsp;</div>
+        <button id="next" type="button" title="Next game day" aria-label="Next game day">&raquo;</button>
+      </div>
+      <div id="sb-note" class="note" hidden></div>
+      <p id="sb-msg">Loading scores&hellip;</p>
+      <div id="games" class="games" role="list" hidden></div>
+      <div class="railfoot">
+        <a id="sb-all" href="https://www.mlb.com/scores" target="_blank" rel="noopener">All scores &raquo;</a>
+        <span id="sb-next"></span>
+        <button id="sb-today" type="button" hidden>Today</button>
+      </div>
+    </section>
+
+    <section id="lead" aria-label="Top story">
+      <h2 class="bar"><span>Top Story</span><small id="lead-kick"></small></h2>
+      <a id="lead-photo" class="photo" target="_blank" rel="noopener" aria-label="Top story photo"><img id="lead-img" alt="" hidden></a>
+      <h1><a id="lead-a" target="_blank" rel="noopener">Loading the top story&hellip;</a></h1>
+      <p id="lead-cap" class="cap"></p>
+      <p id="lead-by" class="by"></p>
+    </section>
+
+    <aside id="side" aria-label="More stories">
+      <div class="grp" id="g-news">
+        <h2 class="bar"><span>Headlines</span><small id="news-src"></small></h2>
+        <ul class="hl" id="news"><li class="msg">Loading headlines&hellip;</li></ul>
+      </div>
+      <div class="grp" id="g-wraps" hidden>
+        <h2 class="bar"><span>Game Wraps</span><small id="wraps-day"></small></h2>
+        <ul class="hl" id="wraps"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <footer id="foot">
+    <span class="long">Unofficial fan page, not affiliated with or endorsed by MLB, its clubs or ESPN. Scores: MLB&rsquo;s public stats feed (&copy; MLB Advanced Media, L.P.). Stories and photos belong to their publishers.</span>
+    <span class="short">Unofficial fan page &middot; not affiliated with MLB</span>
+    <span id="foot-auto">Updates itself</span>
+  </footer>
+</div>
+<noscript><p style="padding:12px">This page needs JavaScript to load scores.</p></noscript>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ----- settings you may want to change ----- */
+  var CFG = {
+    favoriteTeamId: 147,   // this club's game is listed first and gets a nudge toward the top story (0 = off)
+    rolloverHour: 10,      // before this hour (your local time) the board still shows last night's games
+    liveMs: 30000,         // refresh while a game is in progress
+    idleMs: 600000,        // refresh when nothing is live
+    newsMs: 900000         // refresh headlines
+  };
+
+  var API = 'https://statsapi.mlb.com/api/v1';
+  var SITE = 'https://www.mlb.com';
+  var MLB_RSS = SITE + '/feeds/news/rss.xml';
+  var ESPN_NEWS = 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/news?limit=30';
+  var NARROW = '(max-width: 699px) and (orientation: portrait), (max-width: 559px)';
+
+  var TEAMS = [
+    [108, 'LAA', 'Angels', 'angels'], [109, 'AZ', 'D-backs', 'dbacks'], [110, 'BAL', 'Orioles', 'orioles'],
+    [111, 'BOS', 'Red Sox', 'redsox'], [112, 'CHC', 'Cubs', 'cubs'], [113, 'CIN', 'Reds', 'reds'],
+    [114, 'CLE', 'Guardians', 'guardians'], [115, 'COL', 'Rockies', 'rockies'], [116, 'DET', 'Tigers', 'tigers'],
+    [117, 'HOU', 'Astros', 'astros'], [118, 'KC', 'Royals', 'royals'], [119, 'LAD', 'Dodgers', 'dodgers'],
+    [120, 'WSH', 'Nationals', 'nationals'], [121, 'NYM', 'Mets', 'mets'], [133, 'ATH', 'Athletics', 'athletics'],
+    [134, 'PIT', 'Pirates', 'pirates'], [135, 'SD', 'Padres', 'padres'], [136, 'SEA', 'Mariners', 'mariners'],
+    [137, 'SF', 'Giants', 'giants'], [138, 'STL', 'Cardinals', 'cardinals'], [139, 'TB', 'Rays', 'rays'],
+    [140, 'TEX', 'Rangers', 'rangers'], [141, 'TOR', 'Blue Jays', 'bluejays'], [142, 'MIN', 'Twins', 'twins'],
+    [143, 'PHI', 'Phillies', 'phillies'], [144, 'ATL', 'Braves', 'braves'], [145, 'CWS', 'White Sox', 'whitesox'],
+    [146, 'MIA', 'Marlins', 'marlins'], [147, 'NYY', 'Yankees', 'yankees'], [158, 'MIL', 'Brewers', 'brewers']
+  ];
+  var TEAM = {};
+  TEAMS.forEach(function (t) { TEAM[t[0]] = { abbr: t[1], name: t[2], slug: t[3] }; });
+
+  var S = {
+    date: '', manual: false, fallback: false, games: [], err: false, updated: null,
+    news: [], newsSrc: '', newsTs: 0, newsTried: false, rssOk: null,
+    wraps: [], wrapsDay: '', sideNews: [], sideWraps: [], sig: '',
+    run: 0, storyRun: 0, timer: 0, lastRun: 0
+  };
+
+  /* ---------- small helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag), k, v;
+    if (attrs) for (k in attrs) {
+      v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k === 'text') n.textContent = v;
+      else if (k === 'cls') n.className = v;
+      else n.setAttribute(k, v === true ? '' : v);
+    }
+    if (kids != null) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) {
+      if (c != null && c !== false) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+  function link(href, text, cls) { return el('a', { href: href, target: '_blank', rel: 'noopener', cls: cls, text: text }); }
+  function safe(u) { return typeof u === 'string' && /^https?:\/\//i.test(u) ? u : ''; }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function toDate(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2], 12); }
+  function addDays(s, n) { var d = toDate(s); d.setDate(d.getDate() + n); return ymd(d); }
+  function dayDiff(a, b) { return Math.round((toDate(b) - toDate(a)) / 864e5); }
+  function today() { return ymd(new Date()); }
+  function boardDay() { var d = new Date(); if (d.getHours() < CFG.rolloverHour) d.setDate(d.getDate() - 1); return ymd(d); }
+  function fmtDay(s) { return toDate(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }
+  function fmtClock(d) { return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
+  function fmtStart(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return 'TBD';
+    var h = d.getHours(), m = d.getMinutes();
+    return (h % 12 || 12) + ':' + pad(m) + (h < 12 ? 'a' : 'p');
+  }
+  function ago(iso) {
+    var t = new Date(iso).getTime();
+    if (!iso || isNaN(t)) return '';
+    var m = Math.max(0, Math.round((Date.now() - t) / 60000));
+    if (m < 1) return 'now';
+    if (m < 60) return m + 'm';
+    if (m < 60 * 36) return Math.round(m / 60) + 'h';
+    return Math.round(m / 1440) + 'd';
+  }
+  function squash(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+  function clip(s, n) {
+    s = squash(s);
+    if (s.length <= n) return s;
+    var cut = s.slice(0, n), stop = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '));
+    if (stop > n * 0.5) return cut.slice(0, stop + 1);
+    return cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;:\-—]+$/, '') + '…';
+  }
+  function tail(u) { return String(u || '').split(/[?#]/)[0].replace(/\/+$/, '').split('/').pop(); }
+  function grab(url, ms, asText) {
+    var ctl = new AbortController(), t = setTimeout(function () { ctl.abort(); }, ms || 12000);
+    return fetch(url, { signal: ctl.signal, credentials: 'omit' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return asText ? r.text() : r.json();
+    }).finally(function () { clearTimeout(t); });
+  }
+
+  /* ---------- reading a game ---------- */
+  function abbr(side) { var t = side.team || {}; return t.abbreviation || (TEAM[t.id] && TEAM[t.id].abbr) || '???'; }
+  function nick(side) { var t = side.team || {}; return t.teamName || t.clubName || (TEAM[t.id] && TEAM[t.id].name) || t.name || 'TBD'; }
+  function isFav(g) { var f = CFG.favoriteTeamId; return !!f && (g.teams.away.team.id === f || g.teams.home.team.id === f); }
+  function statusOf(g) {
+    var s = g.status || {}, det = s.detailedState || '', abs = s.abstractGameState, ls = g.linescore || {};
+    if (/postponed/i.test(det)) return { k: 'off', t: 'Ppd' };
+    if (/cancel/i.test(det)) return { k: 'off', t: 'Canc' };
+    if (/suspend/i.test(det)) return { k: 'off', t: 'Susp', runs: true };
+    if (abs === 'Final') {
+      var inn = ls.currentInning, sched = ls.scheduledInnings || g.scheduledInnings || 9;
+      return { k: 'final', t: inn && inn !== sched ? 'F/' + inn : 'Final', runs: true };
+    }
+    if (abs === 'Live') {
+      if (/delay/i.test(det)) return { k: 'live', t: 'Delay', runs: true };
+      if (!ls.currentInning || /warmup/i.test(det)) return { k: 'pre', t: fmtStart(g.gameDate) };
+      var half = { Top: 'Top', Middle: 'Mid', Bottom: 'Bot', End: 'End' }[ls.inningState] || '';
+      return { k: 'live', t: (half ? half + ' ' : '') + ls.currentInning, runs: true };
+    }
+    if (/delay/i.test(det)) return { k: 'pre', t: 'Delay' };
+    if (s.startTimeTBD) return { k: 'pre', t: 'TBD' };
+    return { k: 'pre', t: fmtStart(g.gameDate) };
+  }
+  function decided(g) {
+    var a = g.teams.away, h = g.teams.home;
+    if (statusOf(g).k !== 'final' || g.isTie || a.score == null || h.score == null || a.score === h.score) return '';
+    if (a.isWinner === true) return 'away';
+    if (h.isWinner === true) return 'home';
+    return a.score > h.score ? 'away' : 'home';
+  }
+  function order(games) {
+    return games.map(function (g, i) { return { g: g, i: i }; })
+      .sort(function (x, y) { return (isFav(y.g) - isFav(x.g)) || (x.i - y.i); })
+      .map(function (x) { return x.g; });
+  }
+
+  /* ---------- schedule data ---------- */
+  var days = {};
+  function dayGames(date, fresh) {
+    var c = days[date];
+    if (c && !fresh) return Promise.resolve(c.games);
+    return grab(API + '/schedule?sportId=1&date=' + date + '&hydrate=team,linescore').then(function (d) {
+      var out = [];
+      (d.dates || []).forEach(function (x) { (x.games || []).forEach(function (g) { if (g && g.teams) out.push(g); }); });
+      days[date] = { games: out, ts: Date.now() };
+      return out;
+    });
+  }
+  var cal = { list: null, ts: 0, p: null };
+  function ensureCal() {
+    if (cal.list && Date.now() - cal.ts < 6 * 36e5) return Promise.resolve(cal.list);
+    if (cal.p) return cal.p;
+    var t = today();
+    cal.p = grab(API + '/schedule?sportId=1&startDate=' + addDays(t, -200) + '&endDate=' + addDays(t, 200) + '&fields=dates,date,totalGames', 20000)
+      .then(function (d) {
+        cal.list = (d.dates || []).filter(function (x) { return x.date && x.totalGames !== 0; }).map(function (x) { return x.date; }).sort();
+        cal.ts = Date.now();
+        return cal.list;
+      })
+      .catch(function () { return cal.list || []; })
+      .then(function (l) { cal.p = null; return l; });
+    return cal.p;
+  }
+  function prevGameDay(d) { var l = cal.list || [], i; for (i = l.length - 1; i >= 0; i--) if (l[i] < d) return l[i]; return ''; }
+  function nextGameDay(d) { var l = cal.list || [], i; for (i = 0; i < l.length; i++) if (l[i] > d) return l[i]; return ''; }
+
+  /* which day belongs on the board right now */
+  function resolveDay() {
+    if (S.manual) return dayGames(S.date, true).then(function (g) { return { date: S.date, games: g, fallback: false }; });
+    var t = today(), b = boardDay();
+    return dayGames(b, true).then(function (g) {
+      if (g.length) return { date: b, games: g, fallback: false };
+      return (b === t ? Promise.resolve(g) : dayGames(t, true)).then(function (g2) {
+        if (g2.length) return { date: t, games: g2, fallback: false };
+        /* nothing today (off day or offseason): walk back to the last day that had games */
+        return ensureCal().then(function () {
+          var tries = 0;
+          function back(from) {
+            var p = prevGameDay(from);
+            if (!p || tries++ > 7) return { date: t, games: [], fallback: false };
+            return dayGames(p, false).then(function (g3) { return g3.length ? { date: p, games: g3, fallback: true } : back(p); });
+          }
+          return back(t);
+        });
+      });
+    });
+  }
+
+  /* ---------- scoreboard ---------- */
+  function row(g) {
+    var st = statusOf(g), a = g.teams.away, h = g.teams.home, win = decided(g);
+    var gd = SITE + '/gameday/' + g.gamePk;
+    function line(side, which) {
+      var cls = 'ln' + (win ? (win === which ? ' w' : ' l') : '');
+      return el('span', { cls: cls }, [
+        el('span', { cls: 'ab', text: abbr(side) }),
+        el('span', { cls: 'rn', text: st.runs && side.score != null ? String(side.score) : '' })
+      ]);
+    }
+    var tip = nick(a) + (st.runs && a.score != null ? ' ' + a.score : '') + ' at ' + nick(h) + (st.runs && h.score != null ? ' ' + h.score : '') +
+      ' — ' + ((g.status && g.status.detailedState) || st.t) + (g.venue && g.venue.name ? ', ' + g.venue.name : '') + '. Open Gameday.';
+    return el('div', { cls: 'gm ' + st.k + (isFav(g) ? ' fav' : ''), role: 'listitem' }, [
+      el('a', { cls: 'tm', href: gd, target: '_blank', rel: 'noopener', title: tip }, [
+        el('span', { cls: 'st', text: st.t }), line(a, 'away'), line(h, 'home')
+      ]),
+      el('span', { cls: 'lk' }, [link(gd, 'Gameday'), st.k === 'final' ? link(gd + '/final/box', 'Box') : null])
+    ]);
+  }
+  function seriesLabel(games) {
+    if (!games.length) return '';
+    var d = games[0].seriesDescription || '';
+    if (d && d !== 'Regular Season' && games.every(function (g) { return g.seriesDescription === d; }))
+      return d + (games.length === 1 && games[0].seriesGameNumber && /series|wild card/i.test(d) ? ', Game ' + games[0].seriesGameNumber : '');
+    return games.every(function (g) { return 'FDLW'.indexOf(g.gameType) >= 0; }) ? 'Postseason' : '';
+  }
+  function renderBoard() {
+    var box = $('games'), msg = $('sb-msg'), g = S.games, t = today();
+    var rel = S.date === t ? 'Today' : S.date === addDays(t, -1) ? 'Yesterday' : S.date === addDays(t, 1) ? 'Tomorrow' : '';
+    var dd = $('sb-date'), yr = S.date && Math.abs(dayDiff(S.date, t)) > 300 ? ', ' + S.date.slice(0, 4) : '';
+    dd.setAttribute('data-long', fmtDay(S.date || t) + yr);
+    dd.setAttribute('data-short', toDate(S.date || t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + yr);
+    dd.textContent = dd.getAttribute('data-long');
+    $('sb-rel').textContent = rel;
+    $('sb-all').href = SITE + '/scores' + (S.date ? '/' + S.date : '');
+    var note = $('sb-note'), series = seriesLabel(g);
+    note.hidden = !(S.fallback || series);
+    note.textContent = S.fallback ? 'No games today. Last played: ' + (series || fmtDay(S.date)) + '.' : series;
+    if (g.length) {
+      box.replaceChildren.apply(box, g.map(row));
+      box.hidden = false; msg.hidden = true;
+    } else {
+      box.replaceChildren(); box.hidden = true; msg.hidden = false;
+      msg.textContent = S.err ? 'Scores aren’t loading. If this is a preview inside another app, open the page in a web browser. Otherwise it will keep retrying.'
+        : 'No games scheduled.';
+    }
+    $('sb-today').hidden = !S.manual;
+    renderRailFoot();
+    var st = $('status');
+    st.classList.toggle('err', S.err);
+    $('upd').textContent = S.err ? (S.updated ? 'Can’t reach scores · last ' + fmtClock(S.updated) : 'Can’t reach scores') : 'Updated ' + fmtClock(S.updated || new Date());
+    var live = g.some(function (x) { return statusOf(x).k === 'live'; });
+    $('foot-auto').textContent = live ? 'Live: refreshes every ' + Math.round(CFG.liveMs / 1000) + ' seconds' : 'Updates itself';
+    layout();
+  }
+  function renderRailFoot() {
+    var t = today(), nx = '';
+    if (!S.manual && S.date !== t && cal.list) {
+      var n = cal.list.indexOf(t) >= 0 ? '' : nextGameDay(t);
+      if (n) nx = 'Next: ' + fmtDay(n).replace(/^\w+, /, '');
+    }
+    $('sb-next').textContent = S.manual ? '' : nx;
+  }
+
+  /* ---------- stories ---------- */
+  function pickCut(cuts) {
+    if (!cuts) return '';
+    var arr = (Array.isArray(cuts) ? cuts : Object.keys(cuts).map(function (k) { return cuts[k]; }))
+      .filter(function (c) { return c && safe(c.src) && c.width; });
+    if (!arr.length) return '';
+    var wide = arr.filter(function (c) { return c.height && c.width / c.height > 1.3; });
+    if (wide.length) arr = wide;
+    arr.sort(function (x, y) { return x.width - y.width; });
+    var need = Math.min(1600, Math.round(Math.max(320, $('lead').clientWidth) * Math.min(2, window.devicePixelRatio || 1)));
+    for (var i = 0; i < arr.length; i++) if (arr[i].width >= need) return arr[i].src;
+    return arr[arr.length - 1].src;
+  }
+  function recapOf(content) {
+    var r = content && content.editorial && content.editorial.recap && content.editorial.recap.mlb;
+    if (!r || !r.headline) return null;
+    return {
+      title: squash(r.headline), blurb: clip(r.blurb, 260),
+      url: r.slug ? SITE + '/news/' + encodeURIComponent(r.slug) : '',
+      img: pickCut((r.photo && r.photo.cuts) || (r.image && r.image.cuts)),
+      by: (r.contributors && r.contributors[0] && r.contributors[0].name) || '', time: r.date || '', src: 'MLB.com'
+    };
+  }
+  function clipOf(content) {
+    var items = content && content.highlights && content.highlights.highlights && content.highlights.highlights.items;
+    if (!items) return null;
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i], img = pickCut(it && it.image && it.image.cuts);
+      if (img && (it.headline || it.title)) return { title: squash(it.headline || it.title), blurb: clip(it.description || it.blurb, 260), url: '', img: img, by: '', time: it.date || '', src: 'MLB.com' };
+    }
+    return null;
+  }
+  function weight(g, flags) {
+    var a = g.teams.away.score || 0, h = g.teams.home.score || 0, m = Math.abs(a - h), ls = g.linescore || {}, p = 0;
+    p += ({ W: 9, L: 7, D: 6, F: 5, A: 4 })[g.gameType] || 0;          /* postseason and All-Star games lead */
+    if (flags && flags.perfectGame) p += 12; else if (flags && flags.noHitter) p += 10;
+    if ((ls.currentInning || 9) > (ls.scheduledInnings || 9)) p += 3;  /* extra innings */
+    if (m === 1) p += 2; else if (m === 2) p += 1;
+    if (!a || !h) p += 1;                                             /* shutout */
+    if (a + h >= 15) p += 1;                                          /* slugfest */
+    if (isFav(g)) p += 2;
+    return p;
+  }
+  function wrapLine(g) {
+    var away = decided(g) === 'away', w = away ? g.teams.away : g.teams.home, l = away ? g.teams.home : g.teams.away, m = w.score - l.score;
+    var verb = l.score === 0 ? 'blank' : m === 1 ? 'edge' : m === 2 ? 'top' : m <= 4 ? 'beat' : m <= 7 ? 'pound' : 'rout';
+    return nick(w) + ' ' + verb + ' ' + nick(l) + ', ' + w.score + '-' + l.score;
+  }
+  function scoreTag(g) { var a = g.teams.away, h = g.teams.home; return abbr(a) + ' ' + a.score + ', ' + abbr(h) + ' ' + h.score; }
+
+  var recaps = {};
+  function loadRecaps(date, finals) {
+    var c = recaps[date] || (recaps[date] = { ts: 0, fb: 0, byPk: {}, flags: {} });
+    var missing = finals.filter(function (g) { return !c.byPk[g.gamePk]; });
+    if (!missing.length || Date.now() - c.ts < 240000) return Promise.resolve(c);
+    c.ts = Date.now();
+    return grab(API + '/schedule?sportId=1&date=' + date + '&hydrate=flags,game(content(editorial(recap)))', 15000).then(function (d) {
+      (d.dates || []).forEach(function (x) { (x.games || []).forEach(function (g) {
+        var r = recapOf(g.content);
+        if (r) c.byPk[g.gamePk] = r;
+        if (g.flags) c.flags[g.gamePk] = g.flags;
+      }); });
+    }).catch(function () {}).then(function () {
+      /* if the one-request route came back empty, ask for the three biggest games one by one (at most every 15 min) */
+      if (Object.keys(c.byPk).length || Date.now() - c.fb < 900000) return c;
+      c.fb = Date.now();
+      var top = finals.slice().sort(function (x, y) { return weight(y, c.flags[y.gamePk]) - weight(x, c.flags[x.gamePk]); }).slice(0, 3);
+      return Promise.all(top.map(function (g) {
+        return grab(API + '/game/' + g.gamePk + '/content', 15000).then(function (d) {
+          var r = recapOf(d) || clipOf(d);
+          if (r) c.byPk[g.gamePk] = r;
+        }).catch(function () {});
+      })).then(function () { return c; });
+    });
+  }
+  function buildWraps(finals, c) {
+    return finals.filter(function (g) { return decided(g); }).map(function (g) {
+      var r = c.byPk[g.gamePk] || {}, wrap = SITE + '/gameday/' + g.gamePk + '/final/wrap';
+      return {
+        title: r.title || wrapLine(g), blurb: r.blurb || '', url: r.url || wrap, img: r.img || '', by: r.by || '',
+        time: r.time || '', src: 'MLB.com', tag: scoreTag(g), rank: weight(g, c.flags[g.gamePk]) + (r.title ? 0.5 : 0), game: true
+      };
+    }).sort(function (x, y) { return y.rank - x.rank; });
+  }
+
+  function fromRss(text) {
+    var doc = new DOMParser().parseFromString(text, 'text/xml');
+    if (doc.getElementsByTagName('parsererror').length) throw new Error('feed');
+    return Array.prototype.slice.call(doc.getElementsByTagName('item')).map(function (it) {
+      function txt(tag) { var n = it.getElementsByTagName(tag)[0]; return n ? squash(n.textContent) : ''; }
+      function att(tag, name) { var n = it.getElementsByTagName(tag)[0]; return n ? n.getAttribute(name) || '' : ''; }
+      var html = txt('description') || txt('content:encoded');
+      var body = html ? new DOMParser().parseFromString(html, 'text/html') : null;
+      var pic = att('image', 'href') || att('image', 'url') || att('media:content', 'url') || att('media:thumbnail', 'url') ||
+        (/^image\//.test(att('enclosure', 'type')) ? att('enclosure', 'url') : '') ||
+        (body && body.querySelector('img') ? body.querySelector('img').getAttribute('src') : '');
+      return {
+        title: txt('title'), url: safe(txt('link')), img: safe(pic), blurb: body ? clip(body.body.textContent, 240) : '',
+        by: txt('dc:creator') || txt('author'), time: txt('pubDate'), src: 'MLB.com'
+      };
+    }).filter(function (n) { return n.title && n.url; });
+  }
+  function fromEspn(d) {
+    var all = (d.articles || []).filter(function (a) { return a && a.headline && a.links && a.links.web && safe(a.links.web.href) && !a.premium; });
+    var stories = all.filter(function (a) { return a.type !== 'Media'; });
+    return (stories.length >= 4 ? stories : all).map(function (a) {
+      var pics = (a.images || []).filter(function (i) { return i && safe(i.url); });
+      var best = pics.filter(function (i) { return i.width && i.height && i.width / i.height > 1.3 && i.width >= 500; })[0] || pics[0];
+      return { title: squash(a.headline), url: a.links.web.href, img: best ? best.url : '', blurb: clip(a.description, 260), by: a.byline || '', time: a.published || a.lastModified || '', src: 'ESPN' };
+    });
+  }
+  function loadNews() {
+    if (S.news.length && Date.now() - S.newsTs < CFG.newsMs) return Promise.resolve();
+    function rss() { return grab(MLB_RSS, 8000, true).then(fromRss).then(function (n) { if (n.length < 3) throw new Error('thin'); return n; }); }
+    function espn() { return grab(ESPN_NEWS, 10000).then(fromEspn).then(function (n) { if (n.length < 3) throw new Error('thin'); return n; }); }
+    function take(n) { S.news = n; S.newsSrc = n[0].src; S.newsTs = Date.now(); }
+    var done = function () { S.newsTried = true; };
+    if (S.rssOk === true) return rss().catch(espn).then(take).catch(function () {}).then(done);
+    if (S.rssOk === false) return espn().catch(rss).then(take).catch(function () {}).then(done);
+    /* first load: ask both at once and prefer MLB.com's own feed when a browser is allowed to read it */
+    var e = espn().catch(function () { return null; });
+    return rss().then(function (n) { S.rssOk = true; return n; }, function () { S.rssOk = false; return e; })
+      .then(function (n) { if (n) take(n); }).then(done);
+  }
+
+  function storyDay() {
+    var finals = S.games.filter(function (g) { return decided(g); }), t = today();
+    if (finals.length) return Promise.resolve(S.manual || dayDiff(S.date, t) <= 2 ? { date: S.date, finals: finals } : null);
+    if (S.fallback || !S.date) return Promise.resolve(null);
+    /* today's slate has no final yet: lean on the previous day's games */
+    var p = prevGameDay(S.date) || addDays(S.date, -1);
+    if (!S.manual && dayDiff(p, t) > 2) return Promise.resolve(null);
+    return dayGames(p, false).then(function (g) {
+      var f = g.filter(function (x) { return decided(x); });
+      return f.length ? { date: p, finals: f } : null;
+    }).catch(function () { return null; });
+  }
+  function loadStories() {
+    var run = ++S.storyRun;
+    var w = storyDay().then(function (d) {
+      if (!d) return { day: '', list: [] };
+      return loadRecaps(d.date, d.finals).then(function (c) { return { day: d.date, list: buildWraps(d.finals, c) }; });
+    }).catch(function () { return { day: '', list: [] }; });
+    Promise.all([w, loadNews().catch(function () {})]).then(function (r) {
+      if (run !== S.storyRun) return;
+      S.wraps = r[0].list; S.wrapsDay = r[0].day;
+      renderStories();
+    });
+  }
+  function renderStories() {
+    var lead = S.wraps.filter(function (w) { return w.img; })[0] || S.news.filter(function (n) { return n.img; })[0] || S.wraps[0] || S.news[0] || null;
+    var sig = JSON.stringify([lead && [lead.url, lead.title, lead.img], S.wraps.map(function (w) { return w.url + w.title; }), S.news.map(function (n) { return n.url; }), S.newsTried]);
+    if (sig === S.sig) return;
+    S.sig = sig;
+    var a = $('lead-a'), photo = $('lead-photo'), img = $('lead-img'), cap = $('lead-cap'), by = $('lead-by'), kick = $('lead-kick');
+    if (lead) {
+      a.textContent = lead.title; a.href = lead.url; photo.href = lead.url;
+      photo.setAttribute('aria-label', lead.title);
+      cap.textContent = lead.blurb || ''; cap.hidden = !lead.blurb;
+      kick.textContent = lead.game ? 'Final · ' + lead.tag : lead.src;
+      var when = ago(lead.time);
+      by.replaceChildren(
+        el('span', { text: (lead.by ? 'By ' + lead.by.replace(/^by\s+/i, '') + ' · ' : '') + lead.src + (when ? ' · ' + (when === 'now' ? 'just now' : when + ' ago') : '') }),
+        link(lead.url, 'Full story »'));
+      if (img.getAttribute('data-src') !== (lead.img || '')) {
+        img.setAttribute('data-src', lead.img || '');
+        photo.classList.remove('has');
+        if (lead.img) {
+          img.onload = function () { photo.classList.add('has'); };
+          img.onerror = function () { img.hidden = true; photo.classList.remove('has'); };
+          img.alt = lead.title; img.hidden = false; img.src = lead.img;
+        } else { img.hidden = true; img.removeAttribute('src'); }
+      }
+    } else if (S.newsTried) {
+      a.textContent = 'Stories aren’t loading right now'; a.href = SITE + '/news'; photo.href = SITE + '/news';
+      cap.textContent = 'The headline feeds can’t be reached from here at the moment. Scores are unaffected.'; cap.hidden = false;
+      kick.textContent = ''; by.replaceChildren(link(SITE + '/news', 'News on MLB.com »'));
+      img.hidden = true; img.setAttribute('data-src', ''); photo.classList.remove('has');
+    }
+    var used = lead ? tail(lead.url) : '';
+    S.sideWraps = S.wraps.filter(function (w) { return w !== lead; });
+    var wrapTails = {};
+    S.wraps.forEach(function (w) { wrapTails[tail(w.url)] = 1; });
+    S.sideNews = S.news.filter(function (n) { var k = tail(n.url); return k !== used && !wrapTails[k]; });
+    $('news-src').textContent = S.newsSrc || '';
+    $('wraps-day').textContent = S.wrapsDay ? fmtDay(S.wrapsDay) : '';
+    layout();
+  }
+  function fillLists() {
+    var news = $('news'), wraps = $('wraps');
+    if (S.sideNews.length) {
+      news.replaceChildren.apply(news, S.sideNews.map(function (n) {
+        var t = ago(n.time);
+        return el('li', null, [link(n.url, n.title), t ? el('span', { cls: 't', text: t }) : null]);
+      }));
+    } else if (S.newsTried) {
+      news.replaceChildren(el('li', { cls: 'msg' }, ['Headlines aren’t loading right now. ', link(SITE + '/news', 'News on MLB.com »')]));
+    }
+    $('g-wraps').hidden = !S.sideWraps.length;
+    wraps.replaceChildren.apply(wraps, S.sideWraps.map(function (w) {
+      return el('li', null, [link(w.url, w.title), el('span', { cls: 't', text: w.tag })]);
+    }));
+  }
+
+  /* ---------- fitting everything on one screen ---------- */
+  var raf = 0;
+  function layout() { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit); }
+  function fit() {
+    var narrow = window.matchMedia(NARROW).matches, shortWin = window.innerHeight <= 480;
+    var dd = $('sb-date');
+    if (dd.getAttribute('data-long')) {
+      dd.textContent = dd.getAttribute('data-long');
+      if (dd.scrollWidth > dd.clientWidth + 1) dd.textContent = dd.getAttribute('data-short');
+    }
+    var main = $('main'), rail = $('rail'), box = $('games'), lead = $('lead'), side = $('side');
+    var n = box.children.length, cols = 1, colw = shortWin ? 128 : 158;
+
+    if (n && !box.hidden) {
+      var H = box.clientHeight, MIN = 25, MAX = 40;
+      if (!narrow) while (cols < 3 && H / Math.ceil(n / cols) < MIN) cols++;
+      var rows = Math.ceil(n / cols), rowH = Math.max(18, Math.min(MAX, Math.floor(H / rows)));
+      box.style.setProperty('--rows', rows);
+      box.style.setProperty('--rowmax', MAX + 'px');
+      box.style.setProperty('--gfs', (narrow ? (rowH >= 36 ? 13 : rowH >= 32 ? 12 : rowH >= 28 ? 11 : rowH >= 25 ? 10 : 9.5)
+        : (rowH >= 34 ? 11 : rowH >= 30 ? 10.5 : rowH >= 26 ? 10 : rowH >= 23 ? 9.5 : 9)) + 'px');
+      box.classList.toggle('scroll', H / rows < 20);
+    }
+    if (narrow) main.style.removeProperty('--railw'); else main.style.setProperty('--railw', (cols * colw + (cols - 1) * 10 + 14) + 'px');
+    rail.classList.toggle('tight', (narrow ? rail.clientWidth - 10 : colw) < 146);
+
+    /* give the photo first call on space, then trim the caption before the picture gets small */
+    lead.style.setProperty('--leadmax', narrow ? Math.round(main.clientHeight * 0.6) + 'px' : 'none');
+    lead.classList.remove('t1', 't2', 't3');
+    var photo = $('lead-photo'), steps = ['t1', 't2', 't3'], i = 0;
+    while (i < steps.length && (lead.scrollHeight > lead.clientHeight + 1 || photo.clientHeight < Math.min(150, lead.clientWidth * 0.42))) lead.classList.add(steps[i++]);
+
+    /* headline lists: show as many as fit, trimming the longer list first */
+    var lists = [$('news'), $('wraps')];
+    function trim() {
+      fillLists();
+      var guard = 80;
+      while (side.scrollHeight > side.clientHeight + 1 && guard--) {
+        var longest = lists.filter(function (u) { return u.children.length > 1 && !u.parentNode.hidden; })
+          .sort(function (x, y) { return y.children.length - x.children.length; })[0];
+        if (!longest) break;
+        longest.removeChild(longest.lastElementChild);
+      }
+      return lists[0].children.length + lists[1].children.length;
+    }
+    /* on a small phone, shorten the caption rather than leave room for only a couple of links */
+    if (trim() < 4 && narrow && !lead.classList.contains('t1') && S.sideNews.length + S.sideWraps.length > 3) { lead.classList.add('t1'); trim(); }
+  }
+
+  /* ---------- refresh loop ---------- */
+  function nextDelay() {
+    if (S.err) return 60000;
+    if (S.manual) return CFG.idleMs;
+    var now = Date.now(), kinds = S.games.map(function (g) { return { k: statusOf(g).k, at: new Date(g.gameDate).getTime() }; });
+    if (kinds.some(function (x) { return x.k === 'live'; })) return CFG.liveMs;
+    if (kinds.some(function (x) { return x.k === 'pre' && x.at - now < 45 * 60000; })) return 60000;
+    if (kinds.some(function (x) { return x.k === 'pre'; })) return 300000;
+    return CFG.idleMs;
+  }
+  function refresh() {
+    clearTimeout(S.timer);
+    S.lastRun = Date.now();
+    var run = ++S.run, btn = $('reload');
+    btn.classList.add('spin');
+    return resolveDay().then(function (r) {
+      if (run !== S.run) return;
+      S.date = r.date; S.games = order(r.games); S.fallback = r.fallback; S.err = false; S.updated = new Date();
+    }, function () {
+      if (run === S.run) { S.err = true; if (!S.date) S.date = S.manual ? S.date : boardDay(); }
+    }).then(function () {
+      if (run !== S.run) return;
+      btn.classList.remove('spin');
+      renderBoard();
+      loadStories();
+      if (!cal.list) ensureCal().then(renderRailFoot);
+      if (!document.hidden) S.timer = setTimeout(refresh, nextDelay());
+    });
+  }
+  function go(date, manual) { S.manual = manual; if (date) S.date = date; refresh(); }
+  function step(dir) {
+    var base = S.date || today();
+    ensureCal().then(function () {
+      var d = dir < 0 ? prevGameDay(base) : nextGameDay(base);
+      go(d || addDays(base, dir), true);
+    });
+  }
+
+  /* ---------- start ---------- */
+  var sel = $('teams');
+  TEAMS.slice().sort(function (x, y) { return x[2] < y[2] ? -1 : 1; }).forEach(function (t) { sel.appendChild(el('option', { value: SITE + '/' + t[3], text: t[2] })); });
+  sel.addEventListener('change', function () { if (sel.value) { var u = sel.value; sel.selectedIndex = 0; var w = window.open(u, '_blank'); if (w) w.opener = null; else location.href = u; } });
+  var fav = TEAM[CFG.favoriteTeamId];
+  if (fav) { var nf = $('nav-fav'); nf.textContent = fav.name; nf.href = SITE + '/' + fav.slug; nf.hidden = false; }
+  $('today').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  $('prev').addEventListener('click', function () { step(-1); });
+  $('next').addEventListener('click', function () { step(1); });
+  $('sb-today').addEventListener('click', function () { go('', false); });
+  $('reload').addEventListener('click', function () { S.newsTs = 0; refresh(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey || /^(select|input|textarea)$/i.test((e.target && e.target.tagName) || '')) return;
+    if (e.key === 'ArrowLeft') step(-1); else if (e.key === 'ArrowRight') step(1);
+  });
+  document.addEventListener('visibilitychange', function () {
+    clearTimeout(S.timer);
+    if (document.hidden) return;
+    if (Date.now() - S.lastRun > 20000) refresh(); else S.timer = setTimeout(refresh, nextDelay());
+  });
+  window.addEventListener('resize', layout);
+  if (window.ResizeObserver) new ResizeObserver(layout).observe($('main'));
+  refresh();
+})();
+</script>
+</body>
+</html>
