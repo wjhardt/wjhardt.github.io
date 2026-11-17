@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0d2b5e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Linescore">
+<title>Linescore Stats</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230d2b5e'/%3E%3Cpath d='M16 5 27 16 16 27 5 16z' fill='none' stroke='%23ffffff' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+:root{
+  /* Layout: the same 2006-style frame. League leaders in small boxed lists, batting above pitching.
+     The number of names per box grows or shrinks so everything fits on one screen. */
+  --board:#0d2b5e; --board-hi:#1f4f95; --board-deep:#071a3d; --accent:#c8102e;
+  --page:#c3c9d3; --paper:#ffffff; --panel:#f1f3f7; --edge:#8a93a3; --zebra:#f5f7fa;
+  --ink:#1a1f28; --head:#0d2147; --muted:#56606e; --faded:#959dab; --win:#000000;
+  --rule:#d5dae2; --rule-strong:#aab3c2;
+  --bar-hi:#fbfcfd; --bar-lo:#dde3ec; --bar-ink:#0d2b5e; --bar-rule:#c8102e;
+  --link:#1b4f9c; --live:#c8102e; --bullet:#c8102e; --hover:rgba(13,43,94,.08);
+  --f-body:Verdana,"DejaVu Sans",Geneva,Tahoma,sans-serif;
+  --f-head:Arial,"Helvetica Neue",Helvetica,"Liberation Sans",sans-serif;
+  --f-mark:"Arial Black","Arial Bold",Arial,"Helvetica Neue",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --board:#0b2350; --board-hi:#173f7a; --board-deep:#061633; --accent:#e5485a;
+    --page:#05080f; --paper:#0e1420; --panel:#121a28; --edge:#26324a; --zebra:#131b29;
+    --ink:#dfe5ee; --head:#f2f5fa; --muted:#93a0b6; --faded:#5e6b81; --win:#ffffff;
+    --rule:#202b3d; --rule-strong:#33415a;
+    --bar-hi:#1b2538; --bar-lo:#141d2d; --bar-ink:#eef2f8; --bar-rule:#e5485a;
+    --link:#9dc3ff; --live:#ff7d6e; --bullet:#e5485a; --hover:rgba(157,195,255,.10);
+    color-scheme:dark;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{
+  margin:0;height:100vh;height:100dvh;overflow:hidden;
+  padding:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));
+  background:var(--page);color:var(--ink);font:11px/1.4 var(--f-body);
+}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+button{font:inherit;color:inherit;border-radius:0}
+[hidden]{display:none!important}
+#page{height:100%;max-width:1040px;max-height:720px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;background:var(--paper);border:1px solid var(--edge)}
+
+/* ---------- shared header ---------- */
+#util{flex:none;display:flex;align-items:center;gap:8px;height:22px;padding:0 10px;background:var(--panel);border-bottom:1px solid var(--rule);font-size:10px;color:var(--muted);white-space:nowrap}
+#util .sp{flex:1}
+#util select{font:10px var(--f-body);height:17px;padding:0 2px;max-width:170px;border:1px solid var(--rule-strong);background:var(--paper);color:var(--ink);border-radius:0}
+#mast{flex:none;display:flex;align-items:center;gap:10px;padding:7px 12px;color:#fff;background:linear-gradient(180deg,var(--board-hi),var(--board) 46%,var(--board-deep));border-bottom:2px solid var(--accent)}
+.home{display:flex;align-items:center;gap:10px;min-width:0;color:#fff}
+.home:hover{text-decoration:none}
+.mark{width:28px;height:28px;flex:none}
+.word{font:italic 900 26px/1 var(--f-mark);letter-spacing:-.045em;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.tag{margin-top:3px;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#b9c8e2;white-space:nowrap}
+#status{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:9px;color:#d3dcec;white-space:nowrap}
+#nav{flex:none;display:flex;align-items:center;height:24px;padding:0 4px;overflow:hidden;white-space:nowrap;background:var(--board-deep)}
+#nav a{padding:0 9px;font:bold 11px/24px var(--f-head);color:#fff;border-left:1px solid rgba(255,255,255,.16)}
+#nav a:first-child{border-left:0}
+#nav a:hover{background:rgba(255,255,255,.13);text-decoration:none}
+#nav a[aria-current="page"]{background:rgba(255,255,255,.14);box-shadow:inset 0 -3px 0 var(--accent)}
+.bar{flex:none;margin:0;display:flex;align-items:center;justify-content:space-between;gap:8px;height:20px;padding:0 6px;font:bold 10px/1 var(--f-head);letter-spacing:.07em;text-transform:uppercase;color:var(--bar-ink);white-space:nowrap;background:linear-gradient(180deg,var(--bar-hi),var(--bar-lo));border:1px solid var(--rule-strong);border-bottom:2px solid var(--bar-rule)}
+.bar small{min-width:0;overflow:hidden;text-overflow:ellipsis;font:9px/1.2 var(--f-body);letter-spacing:0;text-transform:none;color:var(--muted)}
+#foot{flex:none;display:flex;justify-content:space-between;gap:14px;padding:3px 10px 4px;background:var(--panel);border-top:1px solid var(--rule);font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden}
+#foot span{overflow:hidden;text-overflow:ellipsis}
+#foot .short{display:none}
+
+/* ---------- page title row ---------- */
+#main{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:7px;padding:7px 10px 8px;overflow:hidden}
+#main.scroll{overflow-y:auto}
+.titlebar{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px}
+.titlebar h1{margin:0;font:italic 900 21px/1 var(--f-mark);letter-spacing:-.035em;color:var(--head)}
+.tabs{display:flex}
+.tabs button{margin-left:-1px;padding:3px 10px;border:1px solid var(--rule-strong);background:linear-gradient(var(--bar-hi),var(--bar-lo));font:bold 11px/1.2 var(--f-head);color:var(--link);cursor:pointer}
+.tabs button:first-child{margin-left:0}
+.tabs button[aria-pressed="true"]{background:var(--board);border-color:var(--board);color:#fff}
+.season{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.season select{font:bold 11px var(--f-body);padding:1px 2px;border:1px solid var(--rule-strong);background:var(--paper);color:var(--ink);border-radius:0}
+.asof{margin-left:auto;font-size:9px;color:var(--muted);white-space:nowrap}
+.msg{margin:0;padding:10px 2px;color:var(--muted);font-size:11px}
+#grp-tabs{display:none}
+
+/* ---------- leader boxes ---------- */
+.grp{flex:none;min-width:0}
+.boxes{display:grid;grid-template-columns:repeat(var(--cols,6),minmax(0,1fr));gap:7px;margin-top:6px}
+.ldr{min-width:0;border:1px solid var(--rule-strong);background:var(--paper)}
+.ldr h3{margin:0;display:flex;align-items:baseline;gap:6px;min-width:0;padding:3px 6px;white-space:nowrap;overflow:hidden;
+  background:linear-gradient(var(--bar-hi),var(--bar-lo));border-bottom:1px solid var(--rule-strong);font:bold 11px/1.3 var(--f-head);color:var(--bar-ink)}
+.ldr h3 small{min-width:0;overflow:hidden;text-overflow:ellipsis;font:9px/1.3 var(--f-body);color:var(--muted)}
+.ldr ol{list-style:none;margin:0;padding:0}
+.ldr li{display:grid;grid-template-columns:1.4em minmax(0,1fr) auto 3em;column-gap:.4em;align-items:baseline;padding:.16em 6px;border-bottom:1px dotted var(--rule);font-size:var(--lfs,11px);line-height:1.35}
+.ldr li:last-child{border-bottom:0}
+.ldr li:nth-child(even){background:var(--zebra)}
+.ldr li.top .pl a{font-weight:bold}
+.ldr li.fav{box-shadow:inset 3px 0 0 var(--accent)}
+.ldr li.off{display:none}
+.rk{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.pl{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pl .ps,.pl .pz{display:none}
+.short .pl .pf,.last .pl .pf,.last .pl .ps{display:none}
+.short .pl .ps,.last .pl .pz{display:inline}
+.tm{color:var(--muted);font-size:.85em;white-space:nowrap}
+.v{text-align:right;font:bold 1em var(--f-head);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ldr .none{padding:6px;color:var(--muted);font-size:10px}
+.more{flex:none;margin:0;font-size:10px;color:var(--muted)}
+.more a{font-weight:bold}
+
+/* ---------- phones: one group at a time ---------- */
+@media (max-width:699px) and (orientation:portrait), (max-width:559px){
+  body{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+  #page{max-width:none;max-height:none;border:0}
+  #util,.tag,#nav .x{display:none}
+  #mast{padding:6px 8px;gap:8px}
+  .home{gap:8px}
+  .mark{width:24px;height:24px}
+  .word{font-size:22px}
+  #nav{height:28px;padding:0}
+  #nav a{flex:1;padding:0 2px;text-align:center;line-height:28px}
+  #main{padding:6px 8px 6px;gap:6px}
+  .titlebar{gap:6px 8px}
+  .titlebar h1{font-size:19px}
+  .tabs button{padding:5px 9px;font-size:12px}
+  #grp-tabs{display:flex}
+  .asof{margin-left:0;flex-basis:100%}
+  .grp.away{display:none}
+  .grp .bar{display:none}
+  .boxes{margin-top:0;gap:6px}
+  #foot{padding:2px 8px 3px}
+  #foot .long{display:none}
+  #foot .short{display:inline}
+}
+@media (max-height:480px){
+  body{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+  #page{max-width:none;max-height:none;border:0}
+  #util,#foot,.tag{display:none}
+  #mast{padding:3px 10px}
+  .mark{width:20px;height:20px}
+  .word{font-size:18px}
+  #nav{height:22px}
+  #nav a{line-height:22px}
+  #main{padding:4px 10px 4px;gap:4px}
+  .titlebar h1{font-size:16px}
+  .tabs button{padding:2px 8px}
+  #grp-tabs{display:flex}
+  .grp.away{display:none}
+  .grp .bar{display:none}
+  .boxes{margin-top:0}
+  .more{display:none}
+}
+</style>
+</head>
+<body>
+<div id="page">
+  <header id="top">
+    <div id="util">
+      <span id="today"></span>
+      <span class="sp"></span>
+      <label for="teams">Team pages on MLB.com:</label>
+      <select id="teams"><option value="">Choose a team&hellip;</option></select>
+    </div>
+    <div id="mast">
+      <a class="home" href="index.html" aria-label="Linescore home">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M16 3.5 28.5 16 16 28.5 3.5 16z" fill="none" stroke="#e8394a" stroke-width="2.6"/>
+          <rect x="13.4" y="1" width="5.2" height="5.2" fill="#fff" transform="rotate(45 16 3.6)"/>
+          <rect x="25.8" y="13.4" width="5.2" height="5.2" fill="#fff" transform="rotate(45 28.4 16)"/>
+          <rect x="1" y="13.4" width="5.2" height="5.2" fill="#fff" transform="rotate(45 3.6 16)"/>
+          <path d="M16 31.5 12.4 28v-3h7.2v3z" fill="#fff"/>
+        </svg>
+        <div>
+          <div class="word">Linescore</div>
+          <div class="tag">Every score and the top story on one screen</div>
+        </div>
+      </a>
+      <div id="status"><span id="upd">Loading&hellip;</span></div>
+    </div>
+    <nav id="nav" aria-label="Sections">
+      <a href="index.html">Scores</a>
+      <a href="standings.html">Standings</a>
+      <a href="stats.html" aria-current="page">Stats</a>
+      <a href="https://www.mlb.com/schedule" target="_blank" rel="noopener">Schedule</a>
+      <a href="https://www.mlb.com/news" target="_blank" rel="noopener">News</a>
+      <a class="x" href="https://www.mlb.com/probable-pitchers" target="_blank" rel="noopener">Probables</a>
+      <a class="x" href="https://www.mlb.com/transactions" target="_blank" rel="noopener">Transactions</a>
+      <a class="x" href="https://www.mlb.com/video" target="_blank" rel="noopener">Video</a>
+      <a class="x" id="nav-fav" href="https://www.mlb.com/" target="_blank" rel="noopener" hidden></a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <div class="titlebar">
+      <h1>League Leaders</h1>
+      <div class="tabs" role="group" aria-label="League">
+        <button type="button" data-scope="mlb" aria-pressed="true">MLB</button>
+        <button type="button" data-scope="103" aria-pressed="false">AL</button>
+        <button type="button" data-scope="104" aria-pressed="false">NL</button>
+      </div>
+      <div class="tabs" id="grp-tabs" role="group" aria-label="Group">
+        <button type="button" data-grp="hitting" aria-pressed="true">Batting</button>
+        <button type="button" data-grp="pitching" aria-pressed="false">Pitching</button>
+      </div>
+      <label class="season" for="season">Season <select id="season"></select></label>
+      <span class="asof" id="asof"></span>
+    </div>
+    <p class="msg" id="msg">Loading leaders&hellip;</p>
+    <section class="grp" id="g-hitting" data-grp="hitting" hidden>
+      <h2 class="bar"><span>Batting Leaders</span><small>AVG and OPS among qualified hitters</small></h2>
+      <div class="boxes"></div>
+    </section>
+    <section class="grp" id="g-pitching" data-grp="pitching" hidden>
+      <h2 class="bar"><span>Pitching Leaders</span><small>ERA and WHIP among qualified pitchers</small></h2>
+      <div class="boxes"></div>
+    </section>
+    <p class="more" id="more" hidden>Want every player? <a href="https://www.mlb.com/stats" target="_blank" rel="noopener">Full sortable stats on MLB.com &raquo;</a></p>
+  </main>
+
+  <footer id="foot">
+    <span class="long">Unofficial fan page, not affiliated with or endorsed by MLB or its clubs. Stats: MLB&rsquo;s public stats feed (&copy; MLB Advanced Media, L.P.).</span>
+    <span class="short">Unofficial fan page &middot; not affiliated with MLB</span>
+    <span>Updates itself</span>
+  </footer>
+</div>
+<noscript><p style="padding:12px">This page needs JavaScript to load stats.</p></noscript>
+
+<script>
+(function () {
+  'use strict';
+  var FAV = 147;  /* this club's players are listed in bold red-marked rows (0 = off) */
+  var API = 'https://statsapi.mlb.com/api/v1', SITE = 'https://www.mlb.com';
+  var NARROW = '(max-width: 699px) and (orientation: portrait), (max-width: 559px)';
+  var FIRST = 2006, THIS_YEAR = new Date().getFullYear();
+
+  var TEAMS = [
+    [108, 'LAA', 'Angels', 'angels'], [109, 'AZ', 'D-backs', 'dbacks'], [110, 'BAL', 'Orioles', 'orioles'],
+    [111, 'BOS', 'Red Sox', 'redsox'], [112, 'CHC', 'Cubs', 'cubs'], [113, 'CIN', 'Reds', 'reds'],
+    [114, 'CLE', 'Guardians', 'guardians'], [115, 'COL', 'Rockies', 'rockies'], [116, 'DET', 'Tigers', 'tigers'],
+    [117, 'HOU', 'Astros', 'astros'], [118, 'KC', 'Royals', 'royals'], [119, 'LAD', 'Dodgers', 'dodgers'],
+    [120, 'WSH', 'Nationals', 'nationals'], [121, 'NYM', 'Mets', 'mets'], [133, 'ATH', 'Athletics', 'athletics'],
+    [134, 'PIT', 'Pirates', 'pirates'], [135, 'SD', 'Padres', 'padres'], [136, 'SEA', 'Mariners', 'mariners'],
+    [137, 'SF', 'Giants', 'giants'], [138, 'STL', 'Cardinals', 'cardinals'], [139, 'TB', 'Rays', 'rays'],
+    [140, 'TEX', 'Rangers', 'rangers'], [141, 'TOR', 'Blue Jays', 'bluejays'], [142, 'MIN', 'Twins', 'twins'],
+    [143, 'PHI', 'Phillies', 'phillies'], [144, 'ATL', 'Braves', 'braves'], [145, 'CWS', 'White Sox', 'whitesox'],
+    [146, 'MIA', 'Marlins', 'marlins'], [147, 'NYY', 'Yankees', 'yankees'], [158, 'MIL', 'Brewers', 'brewers']
+  ];
+  var TEAM = {};
+  TEAMS.forEach(function (t) { TEAM[t[0]] = { abbr: t[1], name: t[2], slug: t[3] }; });
+
+  /* [feed category, label, full name, rate stat (qualified players only)] */
+  var CATS = {
+    hitting: [['battingAverage', 'AVG', 'Batting average', 1], ['homeRuns', 'HR', 'Home runs', 0], ['runsBattedIn', 'RBI', 'Runs batted in', 0],
+              ['hits', 'H', 'Hits', 0], ['stolenBases', 'SB', 'Stolen bases', 0], ['onBasePlusSlugging', 'OPS', 'On-base plus slugging', 1]],
+    pitching: [['wins', 'W', 'Wins', 0], ['earnedRunAverage', 'ERA', 'Earned run average', 1], ['strikeouts', 'SO', 'Strikeouts', 0],
+               ['saves', 'SV', 'Saves', 0], ['walksAndHitsPerInningPitched', 'WHIP', 'Walks + hits per inning', 1], ['inningsPitched', 'IP', 'Innings pitched', 0]]
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag), k, v;
+    if (attrs) for (k in attrs) {
+      v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k === 'text') n.textContent = v; else if (k === 'cls') n.className = v; else n.setAttribute(k, v === true ? '' : v);
+    }
+    if (kids != null) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) {
+      if (c != null && c !== false) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+  function grab(url) {
+    var ctl = new AbortController(), t = setTimeout(function () { ctl.abort(); }, 15000);
+    return fetch(url, { signal: ctl.signal, credentials: 'omit' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).finally(function () { clearTimeout(t); });
+  }
+
+  /* ---------- shared header bits ---------- */
+  var sel = $('teams');
+  TEAMS.slice().sort(function (x, y) { return x[2] < y[2] ? -1 : 1; }).forEach(function (t) { sel.appendChild(el('option', { value: SITE + '/' + t[3], text: t[2] })); });
+  sel.addEventListener('change', function () { if (sel.value) { var u = sel.value; sel.selectedIndex = 0; var w = window.open(u, '_blank'); if (w) w.opener = null; else location.href = u; } });
+  if (TEAM[FAV]) { var nf = $('nav-fav'); nf.textContent = TEAM[FAV].name; nf.href = SITE + '/' + TEAM[FAV].slug; nf.hidden = false; }
+  $('today').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  /* ---------- data ---------- */
+  var S = { scope: 'mlb', grp: 'hitting', season: 0, data: null, cache: {}, timer: 0 };
+
+  function load(scope, season) {
+    var key = scope + '|' + season, c = S.cache[key];
+    if (c && Date.now() - c.ts < 15 * 60000) return Promise.resolve(c.d);
+    var base = API + '/stats/leaders?sportId=1&limit=10&season=' + season + (scope === 'mlb' ? '' : '&leagueId=' + scope);
+    var reqs = [];
+    ['hitting', 'pitching'].forEach(function (g) {
+      [0, 1].forEach(function (rate) {
+        var cats = CATS[g].filter(function (c) { return c[3] === rate; }).map(function (c) { return c[0]; });
+        reqs.push(grab(base + '&statGroup=' + g + '&playerPool=' + (rate ? 'QUALIFIED' : 'ALL') + '&leaderCategories=' + cats.join(','))
+          .then(function (d) { return { g: g, d: d }; }, function () { return { g: g, d: null, failed: true }; }));
+      });
+    });
+    return Promise.all(reqs).then(function (rs) {
+      if (rs.every(function (r) { return r.failed; })) throw new Error('unreachable');
+      var out = { hitting: {}, pitching: {}, season: season };
+      rs.forEach(function (r) {
+        ((r.d && r.d.leagueLeaders) || []).forEach(function (L) {
+          if (L.statGroup && L.statGroup !== r.g) return;
+          out[r.g][String(L.leaderCategory || '').toLowerCase()] = L.leaders || [];
+        });
+      });
+      out.count = Object.keys(out.hitting).reduce(function (n, k) { return n + out.hitting[k].length; }, 0);
+      S.cache[key] = { d: out, ts: Date.now() };
+      return out;
+    });
+  }
+
+  /* ---------- rendering ---------- */
+  function shortName(full) {
+    var p = String(full || '').split(' ');
+    return p.length > 1 ? p[0].charAt(0) + '. ' + p.slice(1).join(' ') : full;
+  }
+  function lastName(full) {
+    var p = String(full || '').split(' ');
+    return p.length > 1 ? p.slice(1).join(' ') : full;
+  }
+  function box(cat, leaders) {
+    var ol = el('ol');
+    var prev = null;
+    leaders.forEach(function (L, i) {
+      var person = L.person || {}, t = L.team || {}, m = TEAM[t.id] || {};
+      var rank = L.rank != null ? String(L.rank) : String(i + 1);
+      ol.appendChild(el('li', { cls: (i === 0 || rank === '1' ? 'top' : '') + (t.id === FAV ? ' fav' : '') || null }, [
+        el('span', { cls: 'rk', text: rank === prev ? '' : rank }),
+        el('span', { cls: 'pl' }, el('a', { href: SITE + '/player/' + person.id, target: '_blank', rel: 'noopener', title: person.fullName },
+          [el('span', { cls: 'pf', text: person.fullName || '?' }), el('span', { cls: 'ps', text: shortName(person.fullName) }), el('span', { cls: 'pz', text: lastName(person.fullName) })])),
+        el('span', { cls: 'tm', text: m.abbr || (t.name ? t.name.split(' ').pop().slice(0, 3).toUpperCase() : '') }),
+        el('span', { cls: 'v', text: L.value != null ? String(L.value) : '' })
+      ]));
+      prev = rank;
+    });
+    return el('div', { cls: 'ldr' }, [
+      el('h3', null, [el('abbr', { title: cat[2], text: cat[1] }), el('small', { text: cat[2] })]),
+      leaders.length ? ol : el('p', { cls: 'none', text: 'No leaders listed.' })
+    ]);
+  }
+  function render() {
+    var d = S.data;
+    ['hitting', 'pitching'].forEach(function (g) {
+      var wrap = $('g-' + g).querySelector('.boxes');
+      wrap.replaceChildren.apply(wrap, CATS[g].map(function (c) { return box(c, d[g][c[0].toLowerCase()] || []); }));
+      $('g-' + g).hidden = false;
+    });
+    $('msg').hidden = true; $('more').hidden = false;
+    var scopeName = S.scope === 'mlb' ? 'Major League' : S.scope === '103' ? 'American League' : 'National League';
+    $('asof').textContent = scopeName + ' · ' + S.season + ' regular season' + (S.season < THIS_YEAR ? ', final' : '');
+    $('upd').textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    layout();
+  }
+
+  /* ---------- fit on one screen ---------- */
+  var raf = 0;
+  function layout() { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit); }
+  function fit() {
+    var main = $('main');
+    if (!S.data) return;
+    var narrow = window.matchMedia(NARROW).matches || window.innerHeight <= 480;
+    ['hitting', 'pitching'].forEach(function (g) { $('g-' + g).classList.toggle('away', narrow && g !== S.grp); });
+    main.classList.remove('scroll');
+    var W = main.clientWidth - 20, minW = narrow ? 150 : 132, most = Math.floor((W + 7) / (minW + 7));
+    var options = [6, 3, 2, 1].filter(function (c) { return c <= Math.max(1, most); });
+    var lists = main.querySelectorAll('.ldr ol');
+    var sizes = narrow ? [13, 12.5, 12, 11.5, 11] : [12, 11.5, 11, 10.5];
+    function show(n) {
+      for (var i = 0; i < lists.length; i++) {
+        var li = lists[i].children;
+        for (var j = 0; j < li.length; j++) li[j].classList.toggle('off', j >= n);
+      }
+    }
+    function names(mode) { main.classList.toggle('short', mode === 1); main.classList.toggle('last', mode === 2); }
+    function fitsH() { return main.scrollHeight <= main.clientHeight + 1; }
+    function crowded() {
+      var p = main.querySelectorAll('.pl');
+      for (var i = 0; i < p.length; i++) if (p[i].offsetParent && p[i].scrollWidth > p[i].clientWidth) return true;
+      return false;
+    }
+    /* first choice: at least five names per box with full or initialed names that fit; then last names;
+       then as few as three per box */
+    function attempt(nMin, modes, needRoom) {
+      for (var c = 0; c < options.length; c++) {
+        main.style.setProperty('--cols', options[c]);
+        for (var n = 10; n >= nMin; n--) {
+          show(n);
+          for (var s = 0; s < sizes.length; s++) {
+            main.style.setProperty('--lfs', sizes[s] + 'px');
+            if (!fitsH()) continue;
+            for (var m = 0; m < modes.length; m++) {
+              names(modes[m]);
+              if (!needRoom || !crowded()) return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+    if (attempt(5, [0, 1], true) || attempt(5, [0, 1, 2], true) || attempt(3, [2], false)) return;
+    main.classList.add('scroll');
+  }
+
+  /* ---------- controls ---------- */
+  function go(scope, season) {
+    clearTimeout(S.timer);
+    S.scope = scope; S.season = season;
+    $('season').value = String(season);
+    [].forEach.call(document.querySelectorAll('[data-scope]'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-scope') === scope); });
+    return load(scope, season).then(function (d) {
+      if (S.scope !== scope || S.season !== season) return;
+      S.data = d; render();
+      if (season === THIS_YEAR) S.timer = setTimeout(function () { if (!document.hidden) go(S.scope, S.season); }, 15 * 60000);
+    }, function () {
+      if (S.scope !== scope || S.season !== season) return;
+      S.data = null;
+      $('g-hitting').hidden = true; $('g-pitching').hidden = true; $('more').hidden = true; $('msg').hidden = false;
+      $('msg').textContent = 'Stats aren’t loading. If this is a preview inside another app, open the page in a web browser.';
+      $('upd').textContent = 'Can’t reach stats';
+    });
+  }
+  var ss = $('season');
+  for (var y = THIS_YEAR; y >= FIRST; y--) ss.appendChild(el('option', { value: y, text: String(y) }));
+  ss.addEventListener('change', function () { go(S.scope, +ss.value); });
+  [].forEach.call(document.querySelectorAll('[data-scope]'), function (b) { b.addEventListener('click', function () { go(b.getAttribute('data-scope'), S.season); }); });
+  [].forEach.call(document.querySelectorAll('#grp-tabs [data-grp]'), function (b) {
+    b.addEventListener('click', function () {
+      S.grp = b.getAttribute('data-grp');
+      [].forEach.call(document.querySelectorAll('#grp-tabs [data-grp]'), function (x) { x.setAttribute('aria-pressed', x === b); });
+      layout();
+    });
+  });
+  window.addEventListener('resize', layout);
+  if (window.ResizeObserver) new ResizeObserver(layout).observe($('main'));
+
+  /* before Opening Day this season has no leaders yet, so show last season's */
+  load('mlb', THIS_YEAR).then(function (d) { go('mlb', d.count ? THIS_YEAR : THIS_YEAR - 1); }, function () { go('mlb', THIS_YEAR); });
+})();
+</script>
+</body>
+</html>

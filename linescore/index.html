@@ -81,7 +81,10 @@ button{font:inherit;color:inherit;border-radius:0}
 #nav{flex:none;display:flex;align-items:center;height:24px;padding:0 4px;overflow:hidden;white-space:nowrap;background:var(--board-deep)}
 #nav .lbl{padding:0 8px 0 6px;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#a9bbdb}
 #nav a{padding:0 9px;font:bold 11px/24px var(--f-head);color:#fff;border-left:1px solid rgba(255,255,255,.16)}
-#nav a:hover{background:rgba(255,255,255,.13)}
+#nav a:hover{background:rgba(255,255,255,.13);text-decoration:none}
+#nav a[aria-current="page"]{background:rgba(255,255,255,.14);box-shadow:inset 0 -3px 0 var(--accent)}
+.home{display:flex;align-items:center;gap:10px;min-width:0;color:#fff}
+.home:hover{text-decoration:none}
 
 /* ---------- columns ---------- */
 #main{flex:1 1 0;min-height:0;display:grid;grid-template-columns:var(--railw,172px) minmax(0,1fr) var(--sidew)}
@@ -114,13 +117,19 @@ button{font:inherit;color:inherit;border-radius:0}
 }
 .gm.fav{box-shadow:inset 2px 0 0 var(--accent)}
 .tm{
-  display:grid;grid-template-columns:3.6em minmax(0,1fr);grid-template-rows:auto auto;align-content:center;
-  column-gap:.4em;min-width:0;padding:0 3px 0 5px;color:inherit;
+  display:grid;grid-template-columns:3.8em minmax(0,1fr);grid-template-rows:auto auto;align-content:center;
+  column-gap:.45em;min-width:0;padding:0 3px 0 5px;color:inherit;
 }
 .tm:hover{background:var(--hover);text-decoration:none}
-.st{grid-row:1 / span 2;align-self:center;font-size:.86em;font-weight:bold;white-space:nowrap;overflow:hidden;color:var(--muted)}
-.ln{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:.4em;color:var(--ink);font-variant-numeric:tabular-nums}
-.ln .rn{min-width:1.3em;text-align:right;font-family:var(--f-head)}
+.st{grid-row:1 / span 2;align-self:center;min-width:0;font-size:.86em;font-weight:bold;white-space:nowrap;overflow:hidden;color:var(--muted)}
+.st .ss{display:none}
+#rail.compact .tm{grid-template-columns:2.5em minmax(0,1fr)}
+#rail.compact .st .sl{display:none}
+#rail.compact .st .ss{display:inline}
+/* team and runs sit in separate columns with a fixed gap; the team name is clipped, never drawn over the runs */
+.ln{display:grid;grid-template-columns:minmax(0,1fr) 1.5em;column-gap:.7em;color:var(--ink);font-variant-numeric:tabular-nums}
+.ln .ab{min-width:0;overflow:hidden;white-space:nowrap}
+.ln .rn{text-align:right;white-space:nowrap;font-family:var(--f-head)}
 .ln.w{font-weight:bold;color:var(--win)}
 .ln.l{color:var(--faded)}
 .gm.live .st{color:var(--live)}
@@ -237,6 +246,7 @@ button{font:inherit;color:inherit;border-radius:0}
       <select id="teams"><option value="">Choose a team&hellip;</option></select>
     </div>
     <div id="mast">
+      <a class="home" href="index.html" aria-label="Linescore home">
       <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
         <path d="M16 3.5 28.5 16 16 28.5 3.5 16z" fill="none" stroke="#e8394a" stroke-width="2.6"/>
         <rect x="13.4" y="1" width="5.2" height="5.2" fill="#fff" transform="rotate(45 16 3.6)"/>
@@ -248,17 +258,17 @@ button{font:inherit;color:inherit;border-radius:0}
         <div class="word">Linescore</div>
         <div class="tag">Every score and the top story on one screen</div>
       </div>
+      </a>
       <div id="status">
         <span id="upd">Loading&hellip;</span>
         <button id="reload" type="button" title="Refresh now" aria-label="Refresh now">&#8635;</button>
       </div>
     </div>
-    <nav id="nav" aria-label="Sections on MLB.com">
-      <span class="lbl">On MLB.com</span>
-      <a href="https://www.mlb.com/scores" target="_blank" rel="noopener">Scores</a>
-      <a href="https://www.mlb.com/standings" target="_blank" rel="noopener">Standings</a>
+    <nav id="nav" aria-label="Sections">
+      <a href="index.html" aria-current="page">Scores</a>
+      <a href="standings.html">Standings</a>
+      <a href="stats.html">Stats</a>
       <a href="https://www.mlb.com/schedule" target="_blank" rel="noopener">Schedule</a>
-      <a href="https://www.mlb.com/stats" target="_blank" rel="noopener">Stats</a>
       <a href="https://www.mlb.com/news" target="_blank" rel="noopener">News</a>
       <a class="x" href="https://www.mlb.com/probable-pitchers" target="_blank" rel="noopener">Probables</a>
       <a class="x" href="https://www.mlb.com/transactions" target="_blank" rel="noopener">Transactions</a>
@@ -502,6 +512,12 @@ button{font:inherit;color:inherit;border-radius:0}
   }
 
   /* ---------- scoreboard ---------- */
+  /* the 2006 board's short forms, used only when the rail is too narrow for the full ones */
+  function shortStatus(t) {
+    var m = /^(Top|Bot|Mid|End) (\d+)$/.exec(t);
+    if (m) return m[1].charAt(0) + m[2];
+    return { Final: 'F', Delay: 'Dly', Canc: 'C', Susp: 'S' }[t] || t.replace(/:00(?=[ap]$)/, '');
+  }
   function row(g) {
     var st = statusOf(g), a = g.teams.away, h = g.teams.home, win = decided(g);
     var gd = SITE + '/gameday/' + g.gamePk;
@@ -516,7 +532,8 @@ button{font:inherit;color:inherit;border-radius:0}
       ' — ' + ((g.status && g.status.detailedState) || st.t) + (g.venue && g.venue.name ? ', ' + g.venue.name : '') + '. Open Gameday.';
     return el('div', { cls: 'gm ' + st.k + (isFav(g) ? ' fav' : ''), role: 'listitem' }, [
       el('a', { cls: 'tm', href: gd, target: '_blank', rel: 'noopener', title: tip }, [
-        el('span', { cls: 'st', text: st.t }), line(a, 'away'), line(h, 'home')
+        el('span', { cls: 'st' }, [el('span', { cls: 'sl', text: st.t }), el('span', { cls: 'ss', text: shortStatus(st.t) })]),
+        line(a, 'away'), line(h, 'home')
       ]),
       el('span', { cls: 'lk' }, [link(gd, 'Gameday'), st.k === 'final' ? link(gd + '/final/box', 'Box') : null])
     ]);
@@ -783,18 +800,39 @@ button{font:inherit;color:inherit;border-radius:0}
     var main = $('main'), rail = $('rail'), box = $('games'), lead = $('lead'), side = $('side');
     var n = box.children.length, cols = 1, colw = shortWin ? 128 : 158;
 
+    var fs0 = 11;
     if (n && !box.hidden) {
       var H = box.clientHeight, MIN = 25, MAX = 40;
       if (!narrow) while (cols < 3 && H / Math.ceil(n / cols) < MIN) cols++;
       var rows = Math.ceil(n / cols), rowH = Math.max(18, Math.min(MAX, Math.floor(H / rows)));
       box.style.setProperty('--rows', rows);
       box.style.setProperty('--rowmax', MAX + 'px');
-      box.style.setProperty('--gfs', (narrow ? (rowH >= 36 ? 13 : rowH >= 32 ? 12 : rowH >= 28 ? 11 : rowH >= 25 ? 10 : 9.5)
-        : (rowH >= 34 ? 11 : rowH >= 30 ? 10.5 : rowH >= 26 ? 10 : rowH >= 23 ? 9.5 : 9)) + 'px');
+      fs0 = narrow ? (rowH >= 36 ? 13 : rowH >= 32 ? 12 : rowH >= 28 ? 11 : rowH >= 25 ? 10 : 9.5)
+        : (rowH >= 34 ? 11 : rowH >= 30 ? 10.5 : rowH >= 26 ? 10 : rowH >= 23 ? 9.5 : 9);
       box.classList.toggle('scroll', H / rows < 20);
     }
     if (narrow) main.style.removeProperty('--railw'); else main.style.setProperty('--railw', (cols * colw + (cols - 1) * 10 + 14) + 'px');
-    rail.classList.toggle('tight', (narrow ? rail.clientWidth - 10 : colw) < 146);
+    var tightBase = (narrow ? rail.clientWidth - 10 : colw) < 146;
+
+    /* make sure every team name and status fits beside its runs: step the type down, then drop the
+       Gameday/Box text links (the whole row still opens Gameday), then use the short status forms */
+    function crowded() {
+      var els = box.querySelectorAll('.ab, .st');
+      for (var k = 0; k < els.length; k++) if (els[k].scrollWidth > els[k].clientWidth) return true;
+      return false;
+    }
+    var sizes = [13, 12, 11, 10.5, 10, 9.5, 9, 8.5].filter(function (f) { return f <= fs0; });
+    var plans = [];
+    (tightBase ? [true] : [false, true]).forEach(function (tight) {
+      sizes.forEach(function (f) { if (f >= 9.5 || f === sizes[0]) plans.push([tight, false, f]); });
+    });
+    sizes.forEach(function (f) { plans.push([true, true, f]); });
+    for (var p = 0; p < plans.length; p++) {
+      rail.classList.toggle('tight', plans[p][0]);
+      rail.classList.toggle('compact', plans[p][1]);
+      box.style.setProperty('--gfs', plans[p][2] + 'px');
+      if (box.hidden || !n || !crowded()) break;
+    }
 
     /* give the photo first call on space, then trim the caption before the picture gets small */
     lead.style.setProperty('--leadmax', narrow ? Math.round(main.clientHeight * 0.6) + 'px' : 'none');

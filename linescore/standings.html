@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0d2b5e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Linescore">
+<title>Linescore Standings</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230d2b5e'/%3E%3Cpath d='M16 5 27 16 16 27 5 16z' fill='none' stroke='%23ffffff' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+:root{
+  /* Layout: the same 2006-style frame as the scores page. American and National League tables side by
+     side, one header row per division. Columns drop out, lowest priority first, until the tables fit. */
+  --board:#0d2b5e; --board-hi:#1f4f95; --board-deep:#071a3d; --accent:#c8102e;
+  --page:#c3c9d3; --paper:#ffffff; --panel:#f1f3f7; --edge:#8a93a3; --zebra:#f5f7fa;
+  --ink:#1a1f28; --head:#0d2147; --muted:#56606e; --faded:#959dab; --win:#000000;
+  --rule:#d5dae2; --rule-strong:#aab3c2;
+  --bar-hi:#fbfcfd; --bar-lo:#dde3ec; --bar-ink:#0d2b5e; --bar-rule:#c8102e;
+  --link:#1b4f9c; --live:#c8102e; --bullet:#c8102e; --hover:rgba(13,43,94,.08);
+  --f-body:Verdana,"DejaVu Sans",Geneva,Tahoma,sans-serif;
+  --f-head:Arial,"Helvetica Neue",Helvetica,"Liberation Sans",sans-serif;
+  --f-mark:"Arial Black","Arial Bold",Arial,"Helvetica Neue",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --board:#0b2350; --board-hi:#173f7a; --board-deep:#061633; --accent:#e5485a;
+    --page:#05080f; --paper:#0e1420; --panel:#121a28; --edge:#26324a; --zebra:#131b29;
+    --ink:#dfe5ee; --head:#f2f5fa; --muted:#93a0b6; --faded:#5e6b81; --win:#ffffff;
+    --rule:#202b3d; --rule-strong:#33415a;
+    --bar-hi:#1b2538; --bar-lo:#141d2d; --bar-ink:#eef2f8; --bar-rule:#e5485a;
+    --link:#9dc3ff; --live:#ff7d6e; --bullet:#e5485a; --hover:rgba(157,195,255,.10);
+    color-scheme:dark;
+  }
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{
+  margin:0;height:100vh;height:100dvh;overflow:hidden;
+  padding:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));
+  background:var(--page);color:var(--ink);font:11px/1.4 var(--f-body);
+}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--link);outline-offset:1px}
+button{font:inherit;color:inherit;border-radius:0}
+[hidden]{display:none!important}
+#page{height:100%;max-width:1040px;max-height:720px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;background:var(--paper);border:1px solid var(--edge)}
+
+/* ---------- shared header ---------- */
+#util{flex:none;display:flex;align-items:center;gap:8px;height:22px;padding:0 10px;background:var(--panel);border-bottom:1px solid var(--rule);font-size:10px;color:var(--muted);white-space:nowrap}
+#util .sp{flex:1}
+#util select{font:10px var(--f-body);height:17px;padding:0 2px;max-width:170px;border:1px solid var(--rule-strong);background:var(--paper);color:var(--ink);border-radius:0}
+#mast{flex:none;display:flex;align-items:center;gap:10px;padding:7px 12px;color:#fff;background:linear-gradient(180deg,var(--board-hi),var(--board) 46%,var(--board-deep));border-bottom:2px solid var(--accent)}
+.home{display:flex;align-items:center;gap:10px;min-width:0;color:#fff}
+.home:hover{text-decoration:none}
+.mark{width:28px;height:28px;flex:none}
+.word{font:italic 900 26px/1 var(--f-mark);letter-spacing:-.045em;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.tag{margin-top:3px;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#b9c8e2;white-space:nowrap}
+#status{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:9px;color:#d3dcec;white-space:nowrap}
+#nav{flex:none;display:flex;align-items:center;height:24px;padding:0 4px;overflow:hidden;white-space:nowrap;background:var(--board-deep)}
+#nav a{padding:0 9px;font:bold 11px/24px var(--f-head);color:#fff;border-left:1px solid rgba(255,255,255,.16)}
+#nav a:first-child{border-left:0}
+#nav a:hover{background:rgba(255,255,255,.13);text-decoration:none}
+#nav a[aria-current="page"]{background:rgba(255,255,255,.14);box-shadow:inset 0 -3px 0 var(--accent)}
+.bar{flex:none;margin:0;display:flex;align-items:center;justify-content:space-between;gap:8px;height:20px;padding:0 6px;font:bold 10px/1 var(--f-head);letter-spacing:.07em;text-transform:uppercase;color:var(--bar-ink);white-space:nowrap;background:linear-gradient(180deg,var(--bar-hi),var(--bar-lo));border:1px solid var(--rule-strong);border-bottom:2px solid var(--bar-rule)}
+.bar small{min-width:0;overflow:hidden;text-overflow:ellipsis;font:9px/1.2 var(--f-body);letter-spacing:0;text-transform:none;color:var(--muted)}
+#foot{flex:none;display:flex;justify-content:space-between;gap:14px;padding:3px 10px 4px;background:var(--panel);border-top:1px solid var(--rule);font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden}
+#foot span{overflow:hidden;text-overflow:ellipsis}
+#foot .short{display:none}
+
+/* ---------- page title row ---------- */
+#main{flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:7px;padding:7px 10px 8px;overflow:hidden}
+#main.scroll{overflow-y:auto}
+.titlebar{flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px}
+.titlebar h1{margin:0;font:italic 900 21px/1 var(--f-mark);letter-spacing:-.035em;color:var(--head)}
+.tabs{display:flex}
+.tabs button{margin-left:-1px;padding:3px 10px;border:1px solid var(--rule-strong);background:linear-gradient(var(--bar-hi),var(--bar-lo));font:bold 11px/1.2 var(--f-head);color:var(--link);cursor:pointer}
+.tabs button:first-child{margin-left:0}
+.tabs button[aria-pressed="true"]{position:relative;background:var(--board);border-color:var(--board);color:#fff}
+.season{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.season select{font:bold 11px var(--f-body);padding:1px 2px;border:1px solid var(--rule-strong);background:var(--paper);color:var(--ink);border-radius:0}
+.asof{margin-left:auto;font-size:9px;color:var(--muted);white-space:nowrap}
+.msg{margin:0;padding:10px 2px;color:var(--muted);font-size:11px}
+
+/* ---------- standings tables ---------- */
+.leagues{flex:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:start;font-size:var(--tfs,12px)}
+.leagues.stack{grid-template-columns:minmax(0,1fr)}
+.lg{min-width:0;overflow:hidden}
+table.stand{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;border:1px solid var(--rule-strong);border-top:0}
+.stand th,.stand td{padding:.2em .42em;text-align:right;white-space:nowrap;border-bottom:1px solid var(--rule)}
+.stand th{font:bold .8em/1.35 var(--f-head);letter-spacing:.03em;text-transform:uppercase;color:var(--muted);background:var(--panel);border-bottom-color:var(--rule-strong)}
+.stand th.tn{text-align:left;font-size:.86em;color:var(--bar-ink)}
+.stand td.tn{width:100%;text-align:left;font-family:var(--f-body)}
+.stand td{font-family:var(--f-head)}
+.stand tbody tr.t:nth-child(odd) td{background:var(--zebra)}
+.stand tr.lead td{font-weight:bold}
+.stand tr.lead td.tn a{color:var(--head)}
+.stand tr.cut td{border-bottom:2px solid var(--accent)}
+.stand tr.fav td.tn{box-shadow:inset 3px 0 0 var(--accent)}
+.stand .off{display:none}
+.stand .pos{color:#1d7a3a}
+.stand .neg{color:var(--accent)}
+.stand .cl{font-weight:normal;color:var(--muted)}
+.na{display:none}
+.abbr .nf{display:none}
+.abbr .na{display:inline}
+.legend{flex:none;margin:0;font-size:9px;line-height:1.5;color:var(--muted)}
+.legend b{color:var(--ink)}
+
+@media (prefers-color-scheme:dark){ .stand .pos{color:#6fd08f} }
+
+/* ---------- phones ---------- */
+@media (max-width:699px) and (orientation:portrait), (max-width:559px){
+  body{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+  #page{max-width:none;max-height:none;border:0}
+  #util,.tag,#nav .x{display:none}
+  #mast{padding:6px 8px;gap:8px}
+  .home{gap:8px}
+  .mark{width:24px;height:24px}
+  .word{font-size:22px}
+  #nav{height:28px;padding:0}
+  #nav a{flex:1;padding:0 2px;text-align:center;line-height:28px}
+  #main{padding:6px 8px 6px;gap:6px}
+  .titlebar{gap:6px 8px}
+  .titlebar h1{font-size:19px}
+  .tabs button{padding:5px 9px;font-size:12px}
+  .asof{margin-left:0;flex-basis:100%}
+  .leagues{gap:6px}
+  #foot{padding:2px 8px 3px}
+  #foot .long{display:none}
+  #foot .short{display:inline}
+}
+@media (max-height:480px){
+  body{padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+  #page{max-width:none;max-height:none;border:0}
+  #util,#foot,.tag{display:none}
+  #mast{padding:3px 10px}
+  .mark{width:20px;height:20px}
+  .word{font-size:18px}
+  #nav{height:22px}
+  #nav a{line-height:22px}
+  #main{padding:4px 10px 4px;gap:4px}
+  .titlebar h1{font-size:16px}
+  .tabs button{padding:2px 8px}
+  .stand th,.stand td{padding:.06em .42em;line-height:1.25}
+  .legend{display:none}
+}
+</style>
+</head>
+<body>
+<div id="page">
+  <header id="top">
+    <div id="util">
+      <span id="today"></span>
+      <span class="sp"></span>
+      <label for="teams">Team pages on MLB.com:</label>
+      <select id="teams"><option value="">Choose a team&hellip;</option></select>
+    </div>
+    <div id="mast">
+      <a class="home" href="index.html" aria-label="Linescore home">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M16 3.5 28.5 16 16 28.5 3.5 16z" fill="none" stroke="#e8394a" stroke-width="2.6"/>
+          <rect x="13.4" y="1" width="5.2" height="5.2" fill="#fff" transform="rotate(45 16 3.6)"/>
+          <rect x="25.8" y="13.4" width="5.2" height="5.2" fill="#fff" transform="rotate(45 28.4 16)"/>
+          <rect x="1" y="13.4" width="5.2" height="5.2" fill="#fff" transform="rotate(45 3.6 16)"/>
+          <path d="M16 31.5 12.4 28v-3h7.2v3z" fill="#fff"/>
+        </svg>
+        <div>
+          <div class="word">Linescore</div>
+          <div class="tag">Every score and the top story on one screen</div>
+        </div>
+      </a>
+      <div id="status"><span id="upd">Loading&hellip;</span></div>
+    </div>
+    <nav id="nav" aria-label="Sections">
+      <a href="index.html">Scores</a>
+      <a href="standings.html" aria-current="page">Standings</a>
+      <a href="stats.html">Stats</a>
+      <a href="https://www.mlb.com/schedule" target="_blank" rel="noopener">Schedule</a>
+      <a href="https://www.mlb.com/news" target="_blank" rel="noopener">News</a>
+      <a class="x" href="https://www.mlb.com/probable-pitchers" target="_blank" rel="noopener">Probables</a>
+      <a class="x" href="https://www.mlb.com/transactions" target="_blank" rel="noopener">Transactions</a>
+      <a class="x" href="https://www.mlb.com/video" target="_blank" rel="noopener">Video</a>
+      <a class="x" id="nav-fav" href="https://www.mlb.com/" target="_blank" rel="noopener" hidden></a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <div class="titlebar">
+      <h1>Standings</h1>
+      <div class="tabs" role="group" aria-label="View">
+        <button type="button" id="v-div" aria-pressed="true">Division</button>
+        <button type="button" id="v-wc" aria-pressed="false">Wild Card</button>
+      </div>
+      <label class="season" for="season">Season <select id="season"></select></label>
+      <span class="asof" id="asof"></span>
+    </div>
+    <p class="msg" id="msg">Loading standings&hellip;</p>
+    <div class="leagues" id="leagues" hidden></div>
+    <p class="legend" id="legend" hidden></p>
+  </main>
+
+  <footer id="foot">
+    <span class="long">Unofficial fan page, not affiliated with or endorsed by MLB or its clubs. Standings: MLB&rsquo;s public stats feed (&copy; MLB Advanced Media, L.P.).</span>
+    <span class="short">Unofficial fan page &middot; not affiliated with MLB</span>
+    <span>Updates itself</span>
+  </footer>
+</div>
+<noscript><p style="padding:12px">This page needs JavaScript to load standings.</p></noscript>
+
+<script>
+(function () {
+  'use strict';
+  var FAV = 147;  /* this club's row gets a red marker (0 = off) */
+  var API = 'https://statsapi.mlb.com/api/v1', SITE = 'https://www.mlb.com';
+  var NARROW = '(max-width: 699px) and (orientation: portrait), (max-width: 559px)';
+  var FIRST = 2006;
+
+  var TEAMS = [
+    [108, 'LAA', 'Angels', 'angels'], [109, 'AZ', 'D-backs', 'dbacks'], [110, 'BAL', 'Orioles', 'orioles'],
+    [111, 'BOS', 'Red Sox', 'redsox'], [112, 'CHC', 'Cubs', 'cubs'], [113, 'CIN', 'Reds', 'reds'],
+    [114, 'CLE', 'Guardians', 'guardians'], [115, 'COL', 'Rockies', 'rockies'], [116, 'DET', 'Tigers', 'tigers'],
+    [117, 'HOU', 'Astros', 'astros'], [118, 'KC', 'Royals', 'royals'], [119, 'LAD', 'Dodgers', 'dodgers'],
+    [120, 'WSH', 'Nationals', 'nationals'], [121, 'NYM', 'Mets', 'mets'], [133, 'ATH', 'Athletics', 'athletics'],
+    [134, 'PIT', 'Pirates', 'pirates'], [135, 'SD', 'Padres', 'padres'], [136, 'SEA', 'Mariners', 'mariners'],
+    [137, 'SF', 'Giants', 'giants'], [138, 'STL', 'Cardinals', 'cardinals'], [139, 'TB', 'Rays', 'rays'],
+    [140, 'TEX', 'Rangers', 'rangers'], [141, 'TOR', 'Blue Jays', 'bluejays'], [142, 'MIN', 'Twins', 'twins'],
+    [143, 'PHI', 'Phillies', 'phillies'], [144, 'ATL', 'Braves', 'braves'], [145, 'CWS', 'White Sox', 'whitesox'],
+    [146, 'MIA', 'Marlins', 'marlins'], [147, 'NYY', 'Yankees', 'yankees'], [158, 'MIL', 'Brewers', 'brewers']
+  ];
+  var TEAM = {};
+  TEAMS.forEach(function (t) { TEAM[t[0]] = { abbr: t[1], name: t[2], slug: t[3] }; });
+  var LEAGUES = [[103, 'American League', [201, 202, 200]], [104, 'National League', [204, 205, 203]]];
+  var DIV = { 201: 'East', 202: 'Central', 200: 'West', 204: 'East', 205: 'Central', 203: 'West' };
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag), k, v;
+    if (attrs) for (k in attrs) {
+      v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k === 'text') n.textContent = v; else if (k === 'cls') n.className = v; else n.setAttribute(k, v === true ? '' : v);
+    }
+    if (kids != null) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) {
+      if (c != null && c !== false) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    });
+    return n;
+  }
+  function grab(url) {
+    var ctl = new AbortController(), t = setTimeout(function () { ctl.abort(); }, 15000);
+    return fetch(url, { signal: ctl.signal, credentials: 'omit' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).finally(function () { clearTimeout(t); });
+  }
+
+  /* ---------- shared header bits ---------- */
+  var sel = $('teams');
+  TEAMS.slice().sort(function (x, y) { return x[2] < y[2] ? -1 : 1; }).forEach(function (t) { sel.appendChild(el('option', { value: SITE + '/' + t[3], text: t[2] })); });
+  sel.addEventListener('change', function () { if (sel.value) { var u = sel.value; sel.selectedIndex = 0; var w = window.open(u, '_blank'); if (w) w.opener = null; else location.href = u; } });
+  if (TEAM[FAV]) { var nf = $('nav-fav'); nf.textContent = TEAM[FAV].name; nf.href = SITE + '/' + TEAM[FAV].slug; nf.hidden = false; }
+  $('today').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  /* ---------- data ---------- */
+  var S = { view: 'div', season: 0, data: null, cache: {}, timer: 0 };
+  var THIS_YEAR = new Date().getFullYear();
+
+  function split(tr, type) {
+    var l = (tr.records && tr.records.splitRecords) || [];
+    for (var i = 0; i < l.length; i++) if (l[i].type === type) return l[i].wins + '-' + l[i].losses;
+    return '';
+  }
+  function num(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+  function wcSpots(y) { return y >= 2022 ? 3 : y >= 2012 ? 2 : 1; }
+
+  function load(season) {
+    var c = S.cache[season];
+    if (c && Date.now() - c.ts < 10 * 60000) return Promise.resolve(c.d);
+    return grab(API + '/standings?leagueId=103,104&season=' + season + '&standingsTypes=regularSeason&hydrate=team')
+      .then(function (d) {
+        var byDiv = {}, played = 0, last = '';
+        (d.records || []).forEach(function (r) {
+          if (!r.division) return;
+          byDiv[r.division.id] = (r.teamRecords || []).map(function (tr) {
+            played += tr.gamesPlayed || 0;
+            if (tr.lastUpdated && tr.lastUpdated > last) last = tr.lastUpdated;
+            return tr;
+          });
+        });
+        var out = { byDiv: byDiv, played: played, last: last, season: season };
+        S.cache[season] = { d: out, ts: Date.now() };
+        return out;
+      });
+  }
+
+  /* ---------- table building ---------- */
+  var COLS = {
+    div: [['w', 'W', 1], ['l', 'L', 1], ['pct', 'PCT', 2], ['gb', 'GB', 1], ['wcgb', 'WCGB', 4], ['l10', 'L10', 3], ['strk', 'STRK', 3],
+          ['home', 'Home', 5], ['away', 'Road', 5], ['rs', 'RS', 7], ['ra', 'RA', 7], ['diff', 'Diff', 6]],
+    wc:  [['w', 'W', 1], ['l', 'L', 1], ['pct', 'PCT', 2], ['wcgb', 'WCGB', 1], ['l10', 'L10', 3], ['strk', 'STRK', 3],
+          ['home', 'Home', 5], ['away', 'Road', 5], ['diff', 'Diff', 6], ['elim', 'E#', 4]]
+  };
+  function teamCell(tr) {
+    var t = tr.team || {}, m = TEAM[t.id] || {};
+    var name = t.teamName || t.clubName || m.name || t.name || '?';
+    var ab = t.abbreviation || m.abbr || name.slice(0, 3).toUpperCase();
+    var href = SITE + '/' + (m.slug || '');
+    return el('td', { cls: 'tn' }, [
+      tr.clinchIndicator ? el('span', { cls: 'cl', text: tr.clinchIndicator + '-' }) : null,
+      el('a', { href: href, target: '_blank', rel: 'noopener', title: t.name || name }, [el('span', { cls: 'nf', text: name }), el('span', { cls: 'na', text: ab })])
+    ]);
+  }
+  function value(tr, k, isLeader) {
+    switch (k) {
+      case 'w': return String(tr.wins != null ? tr.wins : (tr.leagueRecord || {}).wins);
+      case 'l': return String(tr.losses != null ? tr.losses : (tr.leagueRecord || {}).losses);
+      case 'pct': return tr.winningPercentage || (tr.leagueRecord || {}).pct || '';
+      case 'gb': return tr.gamesBack || '-';
+      case 'wcgb': return isLeader ? '-' : (tr.wildCardGamesBack || '-');
+      case 'l10': return split(tr, 'lastTen');
+      case 'strk': return (tr.streak && tr.streak.streakCode) || '';
+      case 'home': return split(tr, 'home');
+      case 'away': return split(tr, 'away');
+      case 'rs': return tr.runsScored != null ? String(tr.runsScored) : '';
+      case 'ra': return tr.runsAllowed != null ? String(tr.runsAllowed) : '';
+      case 'diff': var d = tr.runDifferential; return d == null ? '' : (d > 0 ? '+' + d : String(d));
+      case 'elim': return isLeader ? '' : (tr.wildCardEliminationNumber || '');
+    }
+    return '';
+  }
+  function headRow(label, cols) {
+    return el('tr', null, [el('th', { cls: 'tn', scope: 'col', text: label })].concat(cols.map(function (c) {
+      return el('th', { scope: 'col', 'data-p': c[2], text: c[1], title: c[0] === 'wcgb' ? 'Games behind the last wild-card spot' : c[0] === 'elim' ? 'Wild-card elimination number' : null });
+    })));
+  }
+  function teamRow(tr, cols, opts) {
+    var r = el('tr', { cls: 't' + (opts.lead ? ' lead' : '') + (opts.cut ? ' cut' : '') + (tr.team && tr.team.id === FAV ? ' fav' : '') },
+      [teamCell(tr)].concat(cols.map(function (c) {
+        var v = value(tr, c[0], opts.lead), cls = c[0] === 'diff' ? (v.charAt(0) === '+' ? 'pos' : v.charAt(0) === '-' ? 'neg' : '') : '';
+        return el('td', { 'data-p': c[2], cls: cls || null, text: v });
+      })));
+    return r;
+  }
+  function render() {
+    var d = S.data, box = $('leagues'), cols = COLS[S.view];
+    var tables = LEAGUES.map(function (lg) {
+      var table = el('table', { cls: 'stand' });
+      if (S.view === 'div') {
+        lg[2].forEach(function (div) {
+          var rows = (d.byDiv[div] || []).slice().sort(function (a, b) { return num(a.divisionRank) - num(b.divisionRank); });
+          var tb = el('tbody', null, headRow(DIV[div], cols));
+          rows.forEach(function (tr, i) { tb.appendChild(teamRow(tr, cols, { lead: i === 0 && tr.gamesPlayed > 0 })); });
+          table.appendChild(tb);
+        });
+      } else {
+        var all = [];
+        lg[2].forEach(function (div) { all = all.concat(d.byDiv[div] || []); });
+        var leaders = all.filter(function (tr) { return String(tr.divisionRank) === '1'; })
+          .sort(function (a, b) { return num(b.winningPercentage) - num(a.winningPercentage); });
+        var rest = all.filter(function (tr) { return String(tr.divisionRank) !== '1'; }).sort(function (a, b) {
+          return (num(a.wildCardRank) || 99) - (num(b.wildCardRank) || 99) || num(b.winningPercentage) - num(a.winningPercentage);
+        });
+        var t1 = el('tbody', null, headRow('Division leaders', cols));
+        leaders.forEach(function (tr) { t1.appendChild(teamRow(tr, cols, { lead: true })); });
+        var t2 = el('tbody', null, headRow('Wild card', cols)), spots = wcSpots(S.season);
+        rest.forEach(function (tr, i) { t2.appendChild(teamRow(tr, cols, { cut: i === spots - 1 && rest.length > spots })); });
+        table.appendChild(t1); table.appendChild(t2);
+      }
+      return el('section', { cls: 'lg', 'aria-label': lg[1] }, [el('h2', { cls: 'bar' }, [el('span', { text: lg[1] }), el('small', { text: S.view === 'wc' ? 'Wild card race' : '' })]), table]);
+    });
+    box.replaceChildren.apply(box, tables);
+    box.hidden = false;
+    $('msg').hidden = true;
+
+    var flags = {};
+    LEAGUES.forEach(function (lg) { lg[2].forEach(function (div) { (d.byDiv[div] || []).forEach(function (tr) { if (tr.clinchIndicator) flags[tr.clinchIndicator] = 1; }); }); });
+    var KEY = { x: 'clinched playoff berth', y: 'clinched division', z: 'clinched best record in league', w: 'clinched wild card', e: 'eliminated' };
+    var parts = Object.keys(flags).filter(function (k) { return KEY[k]; }).map(function (k) { return k + ' - ' + KEY[k]; });
+    var key = 'L10 - last 10 games · STRK - current streak · GB - games back' + (S.view === 'wc' ? ' · red rule marks the last wild-card spot' : ' · WCGB - games behind the last wild-card spot');
+    $('legend').textContent = (parts.length ? parts.join(' · ') + ' · ' : '') + key;
+    $('legend').hidden = false;
+
+    var finished = S.season < THIS_YEAR || LEAGUES.every(function (lg) { return lg[2].every(function (div) { return (d.byDiv[div] || []).every(function (tr) { return (tr.gamesPlayed || 0) >= 162; }); }); });
+    $('asof').textContent = S.season + ' regular season' + (finished ? ', final' : d.last ? ' · through ' + new Date(d.last).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '');
+    $('upd').textContent = 'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    layout();
+  }
+
+  /* ---------- fit on one screen ---------- */
+  var raf = 0;
+  function layout() { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit); }
+  function fit() {
+    var main = $('main'), box = $('leagues');
+    if (box.hidden || !box.children.length) return;
+    var narrow = window.matchMedia(NARROW).matches;
+    main.classList.remove('scroll');
+    box.classList.toggle('stack', main.clientWidth < 330);
+    var cells = box.querySelectorAll('[data-p]'), tables = box.querySelectorAll('table');
+    function apply(maxp, abbr) {
+      for (var i = 0; i < cells.length; i++) cells[i].classList.toggle('off', +cells[i].getAttribute('data-p') > maxp);
+      box.classList.toggle('abbr', abbr);
+    }
+    function fitsW() { for (var i = 0; i < tables.length; i++) if (tables[i].offsetWidth > tables[i].parentNode.clientWidth + 0.5) return false; return true; }
+    function fitsH() { return main.scrollHeight <= main.clientHeight + 1; }
+    /* keep full names while at least L10 and streak fit; then switch to abbreviations */
+    var plans = [];
+    [7, 6, 5, 4, 3].forEach(function (p) { plans.push([p, false]); });
+    [7, 6, 5, 4, 3, 2, 1].forEach(function (p) { plans.push([p, true]); });
+    /* more columns beat bigger type, as long as the type stays at 11px or more */
+    var sizes = narrow ? [13, 12.5, 12, 11.5, 11] : [12.5, 12, 11.5, 11];
+    function attempt(list) {
+      for (var p = 0; p < plans.length; p++) {
+        apply(plans[p][0], plans[p][1]);
+        for (var s = 0; s < list.length; s++) {
+          box.style.setProperty('--tfs', list[s] + 'px');
+          if (fitsW() && fitsH()) return true;
+        }
+      }
+      return false;
+    }
+    if (attempt(sizes) || attempt([10.5, 10, 9.5, 9])) return;
+    main.classList.add('scroll');  /* last resort on a very small window */
+  }
+
+  /* ---------- controls ---------- */
+  function show() {
+    $('v-div').setAttribute('aria-pressed', S.view === 'div');
+    $('v-wc').setAttribute('aria-pressed', S.view === 'wc');
+    if (S.data) render();
+  }
+  function go(season) {
+    clearTimeout(S.timer);
+    S.season = season;
+    $('season').value = String(season);
+    return load(season).then(function (d) {
+      if (S.season !== season) return;
+      S.data = d; render();
+      if (season === THIS_YEAR) S.timer = setTimeout(function () { if (!document.hidden) go(season); }, 10 * 60000);
+    }, function () {
+      if (S.season !== season) return;
+      $('msg').hidden = false; $('leagues').hidden = true; $('legend').hidden = true;
+      $('msg').textContent = 'Standings aren’t loading. If this is a preview inside another app, open the page in a web browser.';
+      $('upd').textContent = 'Can’t reach standings';
+    });
+  }
+  var ss = $('season');
+  for (var y = THIS_YEAR; y >= FIRST; y--) ss.appendChild(el('option', { value: y, text: String(y) }));
+  ss.addEventListener('change', function () { go(+ss.value); });
+  $('v-div').addEventListener('click', function () { S.view = 'div'; show(); });
+  $('v-wc').addEventListener('click', function () { S.view = 'wc'; show(); });
+  window.addEventListener('resize', layout);
+  if (window.ResizeObserver) new ResizeObserver(layout).observe($('main'));
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && S.season === THIS_YEAR && S.cache[THIS_YEAR] && Date.now() - S.cache[THIS_YEAR].ts > 10 * 60000) go(THIS_YEAR); });
+
+  /* before Opening Day the new season is all 0-0, so show last year's final standings */
+  load(THIS_YEAR).then(function (d) { go(d.played > 0 ? THIS_YEAR : THIS_YEAR - 1); }, function () { go(THIS_YEAR); });
+})();
+</script>
+</body>
+</html>
